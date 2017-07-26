@@ -1,0 +1,10 @@
+<% include header %>
+
+  <h1><%=title %></h1>
+  <% for(var i=0;i<deps.length;i++){ %>
+  	<form action="/<%=nameDeps[i]%>/devices" method="post" >
+  		<input value="<%=deps[i]%>" name="dep" type="hidden"/>
+  		<button type="submit"><%=nameDeps[i]%></button>
+  	</form>
+  	<%}%>
+<% include footer %>
