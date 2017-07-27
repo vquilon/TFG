@@ -6,20 +6,19 @@ var cookieParser = require('cookie-parser');
 var bodyParser = require('body-parser');
 
 var mongoose = require("mongoose");//MongoDB
-var db = mongoose.connect("mongodb://localhost/webprosumer",function(err, db){
-	if(err) {
-		throw err;
-	}
-	else{
-		console.log("¡Base de datos creada!");
-	}
-});//cambiar
-/*var db = mongoose.connection;
-db.on('error', function () {
-  throw new Error('No se puede conectar a la base de datos mongodb://localhost/webprosumer');
-});*/
-console.log(db);
+mongoose.connect("mongodb://localhost/webprosumer",function(err, db){
+	if(err) throw err;
+});
 
+var db = mongoose.connection;
+db.on('error', function () {
+  throw new Error('unable to connect to database at ' + config.db);
+});
+db.once('open', function() {
+  console.log('Conectado a la BD: '+db);
+
+});
+//CAGAR MODELOS DE LA BD
 var models = require("./models/models.js");
 
 var index = require('./routes/index');
