@@ -1,0 +1,13 @@
+<% include header %>
+
+  <h1><%=title %></h1>
+  <% for(var i=0;i<devices.length;i++){ %>
+  	<form action="/<%=nameDep%>/<%=devs[i]%>/observations" method="post" >
+  		<input value="<%=devices[i]%>" name="dev" type="hidden"/>
+  		<input type="date" name="dateMin">
+  		<input type="date" name="dateMax">
+  		<button type="submit"><%=typeDep[i]%></button>
+  	</form>
+  	<%}%>
+  	
+<% include footer %>

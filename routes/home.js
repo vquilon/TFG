@@ -69,8 +69,6 @@ function leer(){
         archivoTipo = "net";
       }
     }
-
-  number += 1;
 }
 
 router.get('/comprobacion', function (req, res, next){
@@ -93,4 +91,5 @@ router.get('/comprobacionArchivo/:id', function (req, res, next){
 		}
     	res.send(data);
     });
+  number += 1;
 });

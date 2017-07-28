@@ -37,12 +37,9 @@ testbeds[3]=keti;
 var preUrlDep = "";
 
 
-
 exports.homeP = function (req, res, next){
   var titulo = "post";
   var datos =  req.files;
-
-
   var origen = "La información del hostname es " + req.hostname + ".  " + "La información de la IP es " + req.ip + ".  ";
   var seguridad = "La información es segura: " + req.secure + ".  ";
   var cookies = "La petición tiene las siguientes cookies: " + JSON.stringify(req.cookies) + ".  ";
@@ -61,54 +58,23 @@ exports.homeP = function (req, res, next){
     	 console.log(err);
   	} 
   });
-
 };
 
-var number = 1;
-var archivoTipo = "";
-
-function leer(){
-  var data = fs.readFileSync('files/file' + number + '.json');
-
-    console.log("Lee el archivo ");
-    if (err){
-      console.error("No existen más archivos para leer", err);
-      res.send("No existen más archivos para leer");
-      return;
-    }
-
-    var jsonContent = JSON.parse(data);
-    variables = jsonContent['vars'];
-    for(var i in variables){
-      varStr = JSON.stringify(variables[i]);
-      varString = varStr.substr(1,varStr.length-2);
-
-      if(varString === "lat"){
-        archivoTipo = "geo";
-      }
-
-      else if(varString === "time"){
-        archivoTipo = "net";
-      }
-    }
-
-  number += 1;
-}
 
 exports.readMongo = function (req, res, next){
-  Article.find(function(err, articles){
-    console.log(articles);
+  ReqSPARQL.find(function(err, reqSPARQL){
+    console.log(reqSPARQL);
     if (err){
       return console.log(err);
     } else{
-      res.send(articles);
+      res.send(reqSPARQL);
     }
   });
  };
 
 exports.readFiles = function (req, res, next){
-	fs.readFile('files/file' + req.params.id + '.json', 'utf8', function(err, data) {  
-		if (err){
+	fs.readFile('files/devDep' + req.params.id + '.json', 'utf8', function(err, data) {  
+    if (err){
     		console.error("No existen más archivos para leer", err);
     		res.send("No existen más archivos para leer");
     		return;
@@ -116,9 +82,6 @@ exports.readFiles = function (req, res, next){
     	res.send(data);
     });
 };
-
-
-
 
 
 //PAGINA PRINCIPAL
@@ -142,7 +105,6 @@ exports.deployments = function(req,res,next){
     }
     else{
       console.log('HEADERS /token: ' + JSON.stringify(response.headers));
-      // Buffer the body entirely for processing as a whole.
       var bodyChunks = [];
       var deps = [];
       var nameDeps = [];
@@ -209,7 +171,7 @@ exports.deployments = function(req,res,next){
                     nameDeps.push("KETI");
                     break;
                   default:
-                    nameDeps.push("Deployment nº"+i);
+                    nameDeps.push("Deployment UNOWN");
                     break;
                 }
               preUrlDep = deps[0].substring(0,deps[0].lastIndexOf('/')+1);
@@ -241,9 +203,9 @@ exports.deployments = function(req,res,next){
 };
 
 
-//-------------------------INCOMPLETO
+//
 exports.DevOfDep = function(req,res,next){
-  var nameDep = req.params.nameDep;
+  var nameDep = req.params.nDep;//para ver que se envia desde el formulario
   var dep = req.params.dep;
   var token = '';
 
@@ -255,15 +217,34 @@ exports.DevOfDep = function(req,res,next){
     else{
       console.log('HEADERS /token: ' + JSON.stringify(response.headers));
       var bodyChunks = [];
-      var dev = [];
-      var nameDev = [];
-
       response.on('data', function(chunk) {
         bodyChunks.push(chunk);
         token = JSON.parse(chunk).tokenId;
       }).on('end', function() {
-        var postData ="";
-          //poner sentencias para obtener todos los devices y sub sistemas que coincidadn con un deployment
+        //Obtener todos los devices y sub sistemas que coincidadn con un deployment
+        var postData =
+          "PREFIX ssn: <http://purl.oclc.org/NET/ssnx/ssn#>"+ 
+          "PREFIX rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#>"+
+          "PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>"+
+          "SELECT ?DepOne ?Dep ?dev ?DepofS ?sys ?type"+
+          "WHERE {"+
+            "?dev rdf:type/rdfs:subClassOf ssn:Device ."+
+            "OPTIONAL{"+
+              "?dev rdf:type ?type ."+
+              "?dev ssn:hasDeployment ?Dep ."+
+              "VALUES ?Dep {"+
+                "<"dep">"+//Sustituir por el deployment
+              "} ."+
+            "}"+
+            "OPTIONAL{"+
+              "?dev iot-lite:isSubSystemOf ?sys ."+
+              "?sys ssn:hasDeployment ?DepofS ."+
+              "VALUES ?DepofS {"+
+                "<"dep">"+//Sustituir por el deployment
+              "} ."+
+            "}"+
+          "}ORDER BY ?dev";
+
         var options = {
           host: 'platform.fiesta-iot.eu',
           path: '/iot-registry/api/queries/execute/global',
@@ -275,6 +256,9 @@ exports.DevOfDep = function(req,res,next){
                 'iPlanetDirectoryPro': token
             }
         };
+        var devices = [];
+        var typeDev = [];
+        var devs = [];
         var request = https.request(options, function(response) {
           console.log('STATUS /devices: ' + response.statusCode);
           if(response.statusCode === 401){
@@ -287,15 +271,29 @@ exports.DevOfDep = function(req,res,next){
               console.log("CHUNK "+chunk);
               var JsonChunk = JSON.parse(chunk);
               var items = JsonChunk.items;
-              //Completar obteniendo todos los devices que pueden medir
-              //Observaciones que tienen un sensor, y estos sensores un subsistema
-              //Y saber cuales pertenecen al deployment específico
+              //Extraer todos los devices que me sirven
+              var i = 0;
+              
+              for(i;i<items.length;i++){
+                //if(items[i].dev.substring(0,d.lastIndexOf("/"))!="https://platform.fiesta-iot.eu/iot-registry/api/observations"){
+                if(items[i].Dep!=undefined || items[i].DepofS!=undefined){
+                //Si el device no tiene Depl o un systema con Deplo no sirve el device
+                  if(items[i].dev!=undefined){
+                    if(items[i].type!="http://purl.oclc.org/NET/ssnx/ssn#Device"){
+                      devices.push(items[i].dev);
+                      devs.push(items[i].dev.substring(items[i].dev.lastIndexOf("/")+1));
+                      typeDev.push(items[i].type.substring(items[i].type.lastIndexOf("#")+1));
+                    }
+                  }
+                }
+              }
             }).on('end', function() {
                
               res.render('devices', {
-                title: 'Get Devices of Deployment',
-                devices: dev, 
-                nameDev: nameDev
+                title: 'Get Devices of Deployment '+nameDep,
+                devices: devices,
+                devs: devs, 
+                typeDev: typeDev
               });
             })
           }
@@ -313,6 +311,116 @@ exports.DevOfDep = function(req,res,next){
   });  
   request.end();
 };
+
+exports.ObsOfDev = function(req, res, next){
+  var dev = req.params.dev;
+  var nDev = req.params.nDev;
+  var dMin = req.params.dateMin;
+  var dMax = req.params.dateMax;
+  var token = '';
+
+  var request = https.request(optionsToken, function(response) {
+    console.log('STATUS /token: ' + response.statusCode);
+    if(response.statusCode === 401){
+      console.log("UNAUTORIZADO");
+    }
+    else{
+      console.log('HEADERS /token: ' + JSON.stringify(response.headers));
+      var bodyChunks = [];
+
+      response.on('data', function(chunk) {
+        bodyChunks.push(chunk);
+        token = JSON.parse(chunk).tokenId;
+      }).on('end', function() {
+        //Obtener todas las observaciones que coincidan con un device
+        var postData =
+          "PREFIX ssn: <http://purl.oclc.org/NET/ssnx/ssn#>"+ 
+          "PREFIX rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#>"+
+          "PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>"+
+          "SELECT ?obs ?s ?sys ?t ?num ?unit"+
+          "WHERE {"+
+            "?obs a ssn:Observation."+
+            "?obs ssn:observedBy ?s ."+
+            "VALUES ?s {"+
+              "<"+dev+">"+
+            "} ."+
+            "?obs ssn:observationSamplingTime ?time ."+
+            "?time time:inXSDDateTime ?t ."+
+            "?obs ssn:observationResult ?result ."+
+            "?result ssn:hasValue ?value ."+
+            "?value iot-lite:hasUnit ?u ."+
+            "?value dul:hasDataValue ?num ."+
+            "?u rdf:type ?unit ."+
+            //"?s iot-lite:exposedBy ?serv ."+
+            //"?serv iot-lite:endpoint ?endp ."+  
+          "}ORDER BY ?t";
+
+        var options = {
+          host: 'platform.fiesta-iot.eu',
+          path: '/iot-registry/api/queries/execute/global',
+          method: 'POST',
+            headers: {
+                'Content-Type': 'text/plain',
+                'Content-Length': Buffer.byteLength(postData),
+                'Accept': 'application/json',
+                'iPlanetDirectoryPro': token
+            }
+        };
+        var obs = [];
+        var timeObs = [];
+        var request = https.request(options, function(response) {
+          console.log('STATUS /observations: ' + response.statusCode);
+          if(response.statusCode === 401){
+            //Token no valido unautorizado
+            console.log("UNAUTORIZADO");
+          }
+          else{
+            console.log('HEADERS /observations: ' + JSON.stringify(response.headers));
+            response.on('data', function(chunk) {
+              console.log("CHUNK "+chunk);
+              var JsonChunk = JSON.parse(chunk);
+              var items = JsonChunk.items;
+              //Extraer todas las observaciones que me sirven
+              if(items.length!=0){
+                //No hay observaciones de este sensor
+              }
+              else{
+                var i = 0;
+                for(i;i<items.length;i++){
+                  if(items[i].obs!=undefined){
+                    var t = items[i].t.substring(0,items[i].t.lastIndexOf("^^"));
+                    obs.push(items[i].obs);
+                    timeObs.push();
+                    //Definir el valor de la medida y de sus unidades
+                    //filtrar las observaciones en los dos rangos de tiempo
+
+                  }
+                }
+              }
+            }).on('end', function() {
+               
+              res.render('observations', {
+                title: 'Get Observations of Device '+nDev,
+                obs: obs, 
+                timeObs: nameObs
+              });
+            })
+          }
+        });
+        request.on('error', function(e) {
+          console.log("ERROR "+e.message);
+        });
+        request.write(postData);
+        request.end();
+      })
+    }
+  });
+  request.on('error', function(e) {
+    console.log("ERROR "+e.message);
+  });  
+  request.end();
+};
+
 
 
 //Deployments----------------------------------------FUNCIONA CON WATERFALL
