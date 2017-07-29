@@ -1,0 +1,14 @@
+<% include header %>
+
+  <h1><%=title %></h1>
+  <% for(var i=0;i<obs.length;i++){ %>
+  		<div>
+        <p>Observacion: <%=obs[i]%></p>
+        <p>Fecha: <%=timeObs[i]%></p>
+        <p>Valor: <%=measures[i]%></p>
+        <p>Unidades: <%=units[i]%></p>
+      </div>
+  		
+  <%}%>
+  	
+<% include footer %>

@@ -315,8 +315,8 @@ exports.DevOfDep = function(req,res,next){
 exports.ObsOfDev = function(req, res, next){
   var dev = req.params.dev;
   var nDev = req.params.nDev;
-  var dMin = req.params.dateMin;
-  var dMax = req.params.dateMax;
+  var dMin = new Date(req.params.dateMin);
+  var dMax = new Date(req.params.dateMax);
   var token = '';
 
   var request = https.request(optionsToken, function(response) {
@@ -367,7 +367,9 @@ exports.ObsOfDev = function(req, res, next){
             }
         };
         var obs = [];
-        var timeObs = [];
+        var timeObs = [];//fecha de las observaciones
+        var measures = [];//medidas de las observaciones
+        var units = [];//unidades de las observaciones
         var request = https.request(options, function(response) {
           console.log('STATUS /observations: ' + response.statusCode);
           if(response.statusCode === 401){
@@ -388,12 +390,18 @@ exports.ObsOfDev = function(req, res, next){
                 var i = 0;
                 for(i;i<items.length;i++){
                   if(items[i].obs!=undefined){
+                    //t form : 2017-03-23T07:08:07.356Z
+                    //num form : 10^^http://www.w3.org/2001/XMLSchema#double
+                    //unit form : http://purl.org/iot/vocab/m3-lite#Percent
                     var t = items[i].t.substring(0,items[i].t.lastIndexOf("^^"));
-                    obs.push(items[i].obs);
-                    timeObs.push();
-                    //Definir el valor de la medida y de sus unidades
-                    //filtrar las observaciones en los dos rangos de tiempo
-
+                    var tDate = t.substring(0,t.indexOf("T"));//Coje la fecha
+                    var obsDate = new Date(tDate);
+                    if(tDate>=dMin && tDate<=dMax){//Fecha de la observación tiene que estar entre los valores máx y mín
+                      obs.push(items[i].obs);
+                      timeObs.push(t.substring(0,t.indexOf(".")));//Coje la fecha y la hora
+                      measures.push(items[i].num.substring(0,items[i].num.indexOf("^^"));
+                      units.push(items[i].unit.substring(items[i].unit.indexOf("#"));
+                    }
                   }
                 }
               }
@@ -402,7 +410,9 @@ exports.ObsOfDev = function(req, res, next){
               res.render('observations', {
                 title: 'Get Observations of Device '+nDev,
                 obs: obs, 
-                timeObs: nameObs
+                timeObs: timeObs,
+                measures: measures,
+                units: units
               });
             })
           }
