@@ -3,42 +3,48 @@ var router = express.Router();
 var multer = require('multer');
 var fs = require('fs');
 
-var number = 1;
-number = fs.readdirSync('files/') + 1;
+var number;
+number = fs.readdirSync('files/');
+number = number.length;
 console.log("Numero de ficheros "+number);
+
 var storage = multer.diskStorage({
     destination: function (req, file, cb) {
         cb(null, 'files/')
     },
     filename: function (req, file, cb) {
-        cb(null, "devDep" + number + ".json");
+        cb(null, "devDepT"+ Date.now() + "N" + number + ".json");
   }
 });
+//Guardando en carpetas
 var upload = multer({ storage: storage });
+//Sin guardar en las carpetas
+var upload2 = multer();
 
-
-var controller = require('../controllers/controller');//Separar en dos controller:
-//Uno que recibe los datos del fesmo
-//Otro que con esos datos los carga y obtiene con el REST las observaciones limitadas en tiempo max y min
-
-router.post('/', upload.any(), controller.homeP);
-
-router.get('/comprobacion', controller.readMongo);
-router.get('/comprobacionArchivo/:id', controller.readFiles);
+var controller = require('../controllers/controller');
+var controller_fesmo = require('../controllers/controller_fesmo');
+var controller_rest = require('../controllers/controller_rest');
+var controller_wf = require('../controllers/controller_wf');
 
 /* GET home page. */
 router.get('/', controller.home);
 
-router.get('/deployments', controller.deployments);
+//Controller Fesmo
+router.post('/', upload.any(), controller_fesmo.fesmo);
+router.post('/fesmo', upload2.any(), controller_fesmo.fesmo2);
+router.get('/readMongo', controller_fesmo.readMongo);
+router.get('/readFiles', controller_fesmo.readFiles);
+router.get('/deployments', controller_fesmo.deploymentsReadMongo);
+router.post('/:nameDep/readFileDevices', controller_fesmo.readFileDevofDep);
+router.post('/:nameDep/readMongoDevices', controller_fesmo.readMongoDevofDep);
 
-router.get('/:nameDep/devices', controller.DevOfDep);
 
-router.get('/:nameDep/:nDev/observations', controller.ObsOfDev);
+//Controller Mongo y Rest
+router.get('/deploymentsRest', controller_rest.deployments);
+router.post('/:nameDep/devices', controller_rest.DevOfDep);
+router.post('/:nameDep/:tDev/observations', controller_rest.ObsOfDev);
 
-
-router.get('/deploymentsWF', controller.deploymentsWF);
-
-////////////////////////////
-
+//Controller Water Fall
+router.get('/deploymentsWF', controller_wf.deploymentsWF);
 
 module.exports = router;

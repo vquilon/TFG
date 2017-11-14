@@ -1,13 +1,25 @@
 <% include header %>
 
   <h1><%=title %></h1>
+  <% for(var i=1;i<sys.length;i++){ %>
+    <h3>System</h3>
+    <% for(var j=0;j<subsystems[i].length;j++){ %>
+      <form action="/<%=nameDep%>/<%=typeSubs[i][j]%>/observations" method="post" >
+        <input value="<%=subsystems[i][j]%>" name="devf" type="hidden"/>
+        <input type="date" name="dateMin">
+        <input type="date" name="dateMax">
+        <button type="submit"><%=typeSubs[i][j]%></button>
+      </form>
+    <%}%>
+  <%}%>
+  <h3>Devices without any System</h3>
   <% for(var i=0;i<devices.length;i++){ %>
-  	<form action="/<%=nameDep%>/<%=devs[i]%>/observations" method="post" >
-  		<input value="<%=devices[i]%>" name="dev" type="hidden"/>
+  	<form action="/<%=nameDep%>/<%=typeDev[i]%>/observations" method="post" >
+  		<input value="<%=devices[i]%>" name="devf" type="hidden"/>
   		<input type="date" name="dateMin">
   		<input type="date" name="dateMax">
-  		<button type="submit"><%=typeDep[i]%></button>
+  		<button type="submit"><%=typeDev[i]%></button>
   	</form>
-  	<%}%>
+  <%}%>
   	
 <% include footer %>

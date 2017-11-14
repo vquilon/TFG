@@ -13,17 +13,17 @@ DeploymentsSchema.virtual('date')
     return this._id.getTimestamp();
   });
 
-mongoose.model('Deployments', DeploymentsSchema);
+mongoose.model('deployments', DeploymentsSchema);
 // SPARQL Request
-var ReqSPARQLSchema = new Schema({
-  title: String,
-  url: String,
-  text: String
+var fesmoSchema = new Schema({
+  name: String,
+  info: String,
+  data: String
 });
 
-ReqSPARQLSchema.virtual('date')
+fesmoSchema.virtual('date')
   .get(function(){
     return this._id.getTimestamp();
   });
 
-mongoose.model('ReqSPARQL', ReqSPARQLSchema);
+mongoose.model('fesmo', fesmoSchema);

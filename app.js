@@ -5,8 +5,13 @@ var logger = require('morgan');
 var cookieParser = require('cookie-parser');
 var bodyParser = require('body-parser');
 
-var mongoose = require("mongoose");//MongoDB
-mongoose.connect("mongodb://localhost/webprosumer",function(err, db){
+/*MONGODB EN LA APLICAION PRINCIPAL
+var mongoose = require("mongoose");//MongoDB Warning solucionado añadiendo useMongoClient: true de la fuente
+//https://github.com/nodkz/mongodb-memory-server/issues/16
+//Linea para quitar el warning (node:4316) DeprecationWarning: Mongoose: mpromise (mongoose's default promise library) is deprecated, plug in your own promise library instead: http://mongoosejs.com/docs/promises.html
+//https://github.com/Automattic/mongoose/issues/4291
+mongoose.Promise = global.Promise;
+var db = mongoose.connect("mongodb://localhost/prosumerFiot", { useMongoClient: true }, function(err, db){
 	if(err) throw err;
 });
 
@@ -17,10 +22,11 @@ db.on('error', function () {
 db.once('open', function() {
   console.log('Conectado a la BD: '+db);
 
-});
+});*/
+
 //CAGAR MODELOS DE LA BD
 var models = require("./models/models.js");
-
+//RUTAS DE CONTROLADORES
 var index = require('./routes/index');
 var users = require('./routes/users');
 
