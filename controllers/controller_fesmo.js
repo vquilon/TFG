@@ -365,6 +365,7 @@ exports.deploymentsReadMongo = function(req,res,next){
              |     dev:type(Device) |   |________|
              |______________________|
 
+SYSTEMS==DEVICES - 14/11/2017
 0:1544 https://platform.fiesta-iot.eu/iot-registry/api/resources/ACeOoODFI1jLuBSxwn1o600ML41KRbtml_Tmjs1hWxTtr-5tgkXqNYOMjfUKju4j-ESpDtQcOGzDi1PgCOH15auCQZ_LLZ0Gl3JDAOc9fH8=
 1:3414 https://platform.fiesta-iot.eu/iot-registry/api/resources/QzzCgR5DFPTemE8Kzc_-j3GPgx38icHOj4vGrS0dxP6DMbhcr4U-v-9dgUDdpv5ElzAuiCR_eabUXKi0Zy82fAcUVU4eBCb0qF2hipH7PfU=
 2:4413 https://platform.fiesta-iot.eu/iot-registry/api/resources/aqoBU_y-A30Ie9EE2bQGVVBlHCOXF0WqI-Zd8NoHl_-HLiuTVbWQf4gJSw-_oH4b8hoR89AOqN4pXeKvi3wxOltFAObU0nBRMRGxVqHEXVg=
@@ -392,14 +393,16 @@ exports.readMongoDevofDep = function(req,res,next){
       //LA FIESTA VA AQUI
       var dataJson = JSON.parse(fesmoArray[0].data);
       var items = dataJson.items;
-      var devices = [];
+      var devices = [];//dispositivos que son su propio systema
       var typeDev = [];
-      var devs = [];
+      var endpoints = [];
+      //var devs = [];
       //Array de systemas
       var sys = [];
       //Array de array donde van los subsistemas
-      var subsystems = [[]];
-      var typeSubs = [[]];
+      var subsystems = [];
+      var typeSubs = [];
+      var endSubs = [];
       //Extraer todos los devices que me sirven
       var i = 0;
       var numSys = 0;
@@ -411,12 +414,14 @@ exports.readMongoDevofDep = function(req,res,next){
             //Los dev que tienen un sys se añaden en otro momento
             if(items[i].dev!=undefined){//hay subD o no
               //if(items[i].type!="http://purl.oclc.org/NET/ssnx/ssn#Device"){
-                //Tipo de dispositivo
+                //Solo leo los dispositivos que son del tipo Device osea systemas
                 if(items[i].type.substring(items[i].type.lastIndexOf("#")+1)=="Device"){
                   //typeDev.push("System");
                   sys.push(items[i].dev.substring(items[i].dev.lastIndexOf("/")+1));
                   var auxS = [];
                   var auxT = [];
+                  var auxE = [];
+                  //Agregar aqui PLATFORM con localizacion
                   //Hay Subsystemas o no
                   if(items[i].subD!=undefined){
                     var j=0;
@@ -425,40 +430,61 @@ exports.readMongoDevofDep = function(req,res,next){
                       if(items[i+j].dev==items[i].dev){
                         auxS.push(items[i+j].subD.substring(items[i+j].subD.lastIndexOf("/")+1));
                         auxT.push(items[i+j].typeSubD.substring(items[i+j].typeSubD.lastIndexOf("#")+1));
+                        if(items[i+j].endp/*SD*/!=undefined){
+                          auxE.push(items[i+j].endp/*SD*/.substring(0,items[i+j].endp/*SD*/.lastIndexOf("^")-1));
+                        }
+                        else{
+                          auxE.push("No endp");
+                        }
                       }
                       else{
                         //console.log("VALOR DE I"+i);
                         //console.log("VALOR DE I"+j);
-                        i=i+j;
+                        i=i+j;//Continua el valor de i mas los subsystemas agregados con valor j
+                        //Ya que estan ordenados por dev, y aparece el mismo system con diferentes
+                        //subsystem en cada siguiente iteracción
                         //console.log("VALOR DE I2"+i);
                         break;
                       }
                     }
                     
                   }
-                  //Device==System
+                  //Systemas sin ningun subsystem
                   else{//Deberia diferenciar entre El systema y subsistemas(los unicos que se ven ahora)
                     auxS.push(items[i].dev.substring(items[i].dev.lastIndexOf("/")+1));
                     auxT.push(items[i].type.substring(items[i].type.lastIndexOf("#")+1));
+                    if(items[i].endp!=undefined){
+                      auxE.push(items[i].endp.substring(0,items[i].endp.lastIndexOf("^")-1));
+                    }
+                    else{
+                      auxE.push("No endp");
+                    }
                   }
                   /*if(numSys==0){
                     subsystems[0].push(auxS);
                     typeSubs[0].push(auxT);  
                   }
-                  else{*///Empiezan en el valor 1 no en el 0
+                  else{*/
                     subsystems.push(auxS);
-                    typeSubs.push(auxT);  
+                    typeSubs.push(auxT);
+                    endSubs.push(auxE);
                   //}
                   numSys++;
                   
                 }
-                else{
+                else{//Device == SYSTEM
                   typeDev.push(items[i].type.substring(items[i].type.lastIndexOf("#")+1));
                   //Todo el enlace
                   devices.push(items[i].dev);
                   //Solo el número identificativo despues de el ultimo /
-                  devs.push(items[i].dev.substring(items[i].dev.lastIndexOf("/")+1));
-                  
+                  //devs.push(items[i].dev.substring(items[i].dev.lastIndexOf("/")+1));
+                  if(items[i].endp!=undefined){
+                      endpoints.push(items[i].endp.substring(0,items[i].endp.lastIndexOf("^")-1));
+                    }
+                  else{
+                    endpoints.push("No endp");
+                  }
+                  //Agregar aqui PLATFORM con localizacion
                 }
                 
               //}
@@ -466,18 +492,20 @@ exports.readMongoDevofDep = function(req,res,next){
           }
         }
       }
-      console.log("Length of sys"+sys.length);//Siempre hay uno menos porque??TIENE UNA MENOS PERO ES LA REAL SUBSYSTEMS EMPIEZA EN EL INDICE 1 el 0 esta vacio
+      console.log("Length of sys"+sys.length);//Misma longitud que el de abajo
       console.log("Length of sys in subsystems"+subsystems.length);
       console.log("Length of sys in Typesubsystems"+subsystems.length);
       res.render('devices', {
         title: 'Get Devices of Deployment '+nameDep,
+        nameDep: nameDep,
         devices: devices,//enlace entero
+        typeDev: typeDev,
+        endpoints: endpoints,
         //devs: devs,//id despues de la /
         sys: sys,
         subsystems: subsystems,
         typeSubs: typeSubs,
-        typeDev: typeDev,
-        nameDep: nameDep
+        endSubs: endSubs
       });
 
       db.close();
