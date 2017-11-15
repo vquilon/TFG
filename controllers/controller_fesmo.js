@@ -57,7 +57,7 @@ exports.fesmo = function (req, res, next){
   var file = fs.readFileSync(req.files[0].path);
 
   console.log(req);
-  console.log("BUFFER: "+ Buffer.from(req.files[0].buffer));
+  //console.log("BUFFER: "+ Buffer.from(req.files[0].buffer));
   var name = "devices&Deployments"+ Date.now() + "N" + number + ".json";
   var data =  /*Buffer.from(*/req.files[0].buffer/*)*/;//Fichero del fesmo con los devices y deployments
   var origin = "Hostname Information: " + req.hostname + " | IP information: " + req.ip + " | ";
@@ -68,16 +68,25 @@ exports.fesmo = function (req, res, next){
   var header = "Date: "+d.getDate()+"/"+(d.getMonth()+1)+"/"+d.getFullYear()+" | Time: "+d.getHours()+":"+d.getMinutes();
   var info = header + origin + infoType + infoFile;
   
-  var newfesmo = new fesmo({
-          name : name,
-          info : info,
-          data : data
+  var newFesmo = {
+    name : name,
+    info : info,
+    data : data
+  };
+  mongo.connect(urlMongdb, function(err, db){
+    if(err) throw err;
+    db.collection('fesmos').insertOne(newFesmo, function(err, records){
+      if(err){
+        console.warn(err.message);
+      }
+      else{
+        console.log("Fesmo added");
+      }
+      db.close();
+    });
+    
   });
-  newfesmo.save(function (err) {
-  	if (err){
-    	 console.error(err);
-  	} 
-  });
+
   res.send(data);
 };
 
