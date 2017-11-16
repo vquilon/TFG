@@ -5,25 +5,37 @@
   <% for(var i=0;i<sys.length;i++){ %>
     <h3>System</h3>
     <% for(var j=0;j<subsystems[i].length;j++){ %>
-      <form action="/<%=nameDep%>/<%=typeSubs[i][j]%>/observations" method="post">
+      <p>Quantity Kind: <%=qkSubs[i][j]%></p>
+      <p>Unit: <%=unitSubs[i][j]%></p>
+      <form action="/<%=nameDep%>/<%=typeSubs[i][j]%>/endpoint" method="post">
         <input value="<%=subsystems[i][j]%>" name="devf" type="hidden"/>
         <input value="<%=sys[i]%>" name="sys" type="hidden"/>
         <input value="<%=endSubs[i][j]%>" name="endp" type="hidden"/>
+        <input value="<%=qkSubs[i][j]%>" name="qk" type="hidden"/>
+        <input value="<%=unitSubs[i][j]%>" name="unit" type="hidden"/>
         <!--<input type="date" name="dateMin">
         <input type="date" name="dateMax">-->
         <button type="submit"><%=typeSubs[i][j]%></button>
       </form>
+      <hr>
+      <br>
     <%}%>
   <%}%>
   <h2>Devices without any System</h2>
   <% for(var i=0;i<devices.length;i++){ %>
-  	<form action="/<%=nameDep%>/<%=typeDev[i]%>/observations" method="post" >
+    <p>Quantity Kind: <%=qks[i]%></p>
+    <p>Unit: <%=units[i]%></p>
+  	<form action="/<%=nameDep%>/<%=typeDev[i]%>/endpoint" method="post" >
   		<input value="<%=devices[i]%>" name="devf" type="hidden"/>
       <input value="<%=endpoints[i]%>" name="endp" type="hidden"/>
+      <input value="<%=qks[i]%>" name="qk" type="hidden"/>
+      <input value="<%=units[i]%>" name="unit" type="hidden"/>
   		<!--<input type="date" name="dateMin">
   		<input type="date" name="dateMax">-->
   		<button type="submit"><%=typeDev[i]%></button>
   	</form>
+    <hr>
+    <br>
   <%}%>
   	
 <% include footer %>

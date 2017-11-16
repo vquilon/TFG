@@ -54,12 +54,13 @@ var preUrlDep = "";
 exports.fesmo = function (req, res, next){
   var d = new Date();
   //NUEVO
-  var file = fs.readFileSync(req.files[0].path);
-
   console.log(req);
+  var file = fs.readFileSync(req.files[0].path);
+  console.log(file);
   //console.log("BUFFER: "+ Buffer.from(req.files[0].buffer));
   var name = "devices&Deployments"+ Date.now() + "N" + number + ".json";
-  var data =  /*Buffer.from(*/req.files[0].buffer/*)*/;//Fichero del fesmo con los devices y deployments
+  //var data =  /*Buffer.from(*/req.files[0].buffer/*)*/;//Fichero del fesmo con los devices y deployments
+  var data = file.toString();
   var origin = "Hostname Information: " + req.hostname + " | IP information: " + req.ip + " | ";
   //var secure = "Info Secure: " + req.secure + ".  ";
   //var cookies = "Cookies: " + JSON.stringify(req.cookies) + ".  ";
@@ -100,8 +101,7 @@ exports.fesmo2 = function (req, res, next){
   var time = dateTime.getHours()+":"+dateTime.getMinutes();
   //NUEVO
   //var file = fs.readFileSync(req.files[0].path);
-  //console.log(req);
-
+  console.log(req);
   //CREAR VARIABLES A GUARDAR
   var name = "DevicesDeployments";
   var data =  req.files[0].buffer;//Fichero del fesmo con los devices y deployments
@@ -376,9 +376,17 @@ exports.deploymentsReadMongo = function(req,res,next){
 
 SYSTEMS==DEVICES - 14/11/2017
 0:1544 https://platform.fiesta-iot.eu/iot-registry/api/resources/ACeOoODFI1jLuBSxwn1o600ML41KRbtml_Tmjs1hWxTtr-5tgkXqNYOMjfUKju4j-ESpDtQcOGzDi1PgCOH15auCQZ_LLZ0Gl3JDAOc9fH8=
+"qK": "http://purl.org/iot/vocab/m3-lite#Humidity",
+"unit": "http://purl.org/iot/vocab/m3-lite#Percent"
 1:3414 https://platform.fiesta-iot.eu/iot-registry/api/resources/QzzCgR5DFPTemE8Kzc_-j3GPgx38icHOj4vGrS0dxP6DMbhcr4U-v-9dgUDdpv5ElzAuiCR_eabUXKi0Zy82fAcUVU4eBCb0qF2hipH7PfU=
+"qK": "http://purl.org/iot/vocab/m3-lite#TemperatureWasteContainer",
+"unit": "http://purl.org/iot/vocab/m3-lite#DegreeCelsius"
 2:4413 https://platform.fiesta-iot.eu/iot-registry/api/resources/aqoBU_y-A30Ie9EE2bQGVVBlHCOXF0WqI-Zd8NoHl_-HLiuTVbWQf4gJSw-_oH4b8hoR89AOqN4pXeKvi3wxOltFAObU0nBRMRGxVqHEXVg=
+"qK": "http://purl.org/iot/vocab/m3-lite#TemperatureWasteContainer",
+"unit": "http://purl.org/iot/vocab/m3-lite#DegreeCelsius"
 3:4546 https://platform.fiesta-iot.eu/iot-registry/api/resources/cQ1aaePYADz5Ge2Goo17Z2F9543A5qTTVYk_PSoRlAbjFuatZVR46gcY08rgLAKD7Nrf6y_VHjuIfypKjmRX_gMn46ld8XxKKDG8IOCQoWg=
+"qK": "http://purl.org/iot/vocab/m3-lite#Humidity",
+"unit": "http://purl.org/iot/vocab/m3-lite#Percent"
 */
 exports.readMongoDevofDep = function(req,res,next){
   /*Para coger los parametros de la url es con req.params.:id
@@ -405,6 +413,8 @@ exports.readMongoDevofDep = function(req,res,next){
       var devices = [];//dispositivos que son su propio systema
       var typeDev = [];
       var endpoints = [];
+      var qks = [];
+      var units = [];
       //var devs = [];
       //Array de systemas
       var sys = [];
@@ -412,6 +422,8 @@ exports.readMongoDevofDep = function(req,res,next){
       var subsystems = [];
       var typeSubs = [];
       var endSubs = [];
+      var qkSubs = [];
+      var unitSubs = [];
       //Extraer todos los devices que me sirven
       var i = 0;
       var numSys = 0;
@@ -430,6 +442,8 @@ exports.readMongoDevofDep = function(req,res,next){
                   var auxS = [];
                   var auxT = [];
                   var auxE = [];
+                  var auxqK = [];
+                  var auxU = [];
                   //Agregar aqui PLATFORM con localizacion
                   //Hay Subsystemas o no
                   if(items[i].subD!=undefined){
@@ -445,6 +459,19 @@ exports.readMongoDevofDep = function(req,res,next){
                         else{
                           auxE.push("No endp");
                         }
+                        //Puede que haya que hacer sentencia if else pero en teoria todos los devices tienen un qk y unit
+                        if(items[i+j].qK/*SD*/!=undefined){
+                          auxqK.push(items[i+j].qK/*SD*/.substring(items[i+j].qK/*SD*/.lastIndexOf("#")+1));
+                        }
+                        else{
+                          auxqK.push("No QK");
+                        }
+                        if(items[i+j].unit/*SD*/!=undefined){
+                          auxU.push(items[i+j].unit/*SD*/.substring(items[i+j].unit/*SD*/.lastIndexOf("#")+1));
+                        }
+                        else{
+                          auxU.push("No UNIT");
+                        }             
                       }
                       else{
                         //console.log("VALOR DE I"+i);
@@ -468,6 +495,21 @@ exports.readMongoDevofDep = function(req,res,next){
                     else{
                       auxE.push("No endp");
                     }
+
+                    if(items[i].qK!=undefined){
+                      auxqK.push(items[i].qK.substring(items[i].qK.lastIndexOf("#")+1));
+                    }
+                    else{
+                      auxqK.push("No QK");
+                    }
+                    if(items[i].unit!=undefined){
+                      auxU.push(items[i].unit.substring(items[i].unit.lastIndexOf("#")+1));
+                    }
+                    else{
+                      auxU.push("No UNIT");
+                    }             
+                    
+                    
                   }
                   /*if(numSys==0){
                     subsystems[0].push(auxS);
@@ -477,6 +519,8 @@ exports.readMongoDevofDep = function(req,res,next){
                     subsystems.push(auxS);
                     typeSubs.push(auxT);
                     endSubs.push(auxE);
+                    qkSubs.push(auxqK);
+                    unitSubs.push(auxU);
                   //}
                   numSys++;
                   
@@ -493,6 +537,18 @@ exports.readMongoDevofDep = function(req,res,next){
                   else{
                     endpoints.push("No endp");
                   }
+                  if(items[i].qK!=undefined){
+                      qks.push(items[i].qK.substring(items[i].qK.lastIndexOf("#")+1));
+                    }
+                    else{
+                      qks.push("No QK");
+                    }
+                    if(items[i].unit!=undefined){
+                      units.push(items[i].unit.substring(items[i].unit.lastIndexOf("#")+1));
+                    }
+                    else{
+                      units.push("No UNIT");
+                    }
                   //Agregar aqui PLATFORM con localizacion
                 }
                 
@@ -510,11 +566,15 @@ exports.readMongoDevofDep = function(req,res,next){
         devices: devices,//enlace entero
         typeDev: typeDev,
         endpoints: endpoints,
+        qks: qks,
+        units: units,
         //devs: devs,//id despues de la /
         sys: sys,
         subsystems: subsystems,
         typeSubs: typeSubs,
-        endSubs: endSubs
+        endSubs: endSubs,
+        qkSubs: qkSubs,
+        unitSubs: unitSubs
       });
 
       db.close();

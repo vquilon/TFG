@@ -43,6 +43,8 @@ router.post('/:nameDep/readMongoDevices', controller_fesmo.readMongoDevofDep);
 router.get('/deploymentsRest', controller_rest.deployments);
 router.post('/:nameDep/devices', controller_rest.DevOfDep);
 router.post('/:nameDep/:tDev/observations', controller_rest.ObsOfDev);
+//NUEVO por endpoints
+router.post('/:nameDep/:tDev/endpoint', controller_rest.EndpOfDev);
 
 //Controller Water Fall
 router.get('/deploymentsWF', controller_wf.deploymentsWF);

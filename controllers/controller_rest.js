@@ -139,7 +139,7 @@ exports.deployments = function(req,res,next){
                     nameDeps.push("NEW3");
                     break;
                   default:
-                    nameDeps.push("DeploymentUNKNOWN");
+                    nameDeps.push("DeploymentNEW");
                     break;
                 }
               /*Coge el enlace antes de el numero*/
@@ -425,12 +425,146 @@ exports.ObsOfDev = function(req, res, next){
   request.end();
 };
 
+exports.EndpOfDev = function(req, res, next){
+  var dev = req.body.devf;//url full
+  var tDev = req.query.tDev;//tipo del device (el nombre añadir mas adelante un nombre)
+  var endp = req.body.endp;
+  var qk = req.body.qk;
+  var unit = req.body.unit;
+  var endpURI = endp.substring(endp.lastIndexOf("/")+1);//Nos quedamos solo con la id del endpoint
+  var host = endp.substring(endp.indexOf("://")+3).substring(0,endp.substring(endp.indexOf("://")+3).indexOf('/'));
+  var path = endp.substring(endp.substring(endp.indexOf("://")+3).indexOf('/')+endp.indexOf('://')+3, endp.lastIndexOf('/')+1);
+  var token = '';
+  console.log("tDev "+tDev);
+  var request = https.request(optionsToken, function(response) {
+    console.log('STATUS /token: ' + response.statusCode);
+    if(response.statusCode === 401){
+      console.info("UNAUTORIZADO");
+    }
+    else{
+      console.log('HEADERS /token: ' + JSON.stringify(response.headers));
+      var bodyChunks = [];
+
+      response.on('data', function(chunk) {
+        bodyChunks.push(chunk);
+        token = JSON.parse(chunk).tokenId;
+      }).on('end', function() {
+        var options = {
+          host: host,//'platform.fiesta-iot.eu',
+          path: path+endpURI,//'/iot-registry/api/endpoints/'+,
+          method: 'GET',
+            headers: {
+                'Cache-control': 'no-cache',
+                'Accept': 'application/ld+json',
+                'iPlanetDirectoryPro': token
+            }
+        };
+        //Variables a presentar finalmente
+        var date;
+        var lat;
+        var long;
+        var measure;
+
+        var request = https.request(options, function(response) {
+          console.log('STATUS /observations: ' + response.statusCode);
+          if(response.statusCode === 401){
+            //Token no valido unautorizado
+            console.log("UNAUTORIZADO");
+          }
+          else{
+            console.log('HEADERS /endpoints: ' + JSON.stringify(response.headers));
+            response.on('data', function(chunk) {
+              console.log("CHUNK "+chunk);
+              var JsonChunk = JSON.parse(chunk);
+              var items = JsonChunk.items;
+              //Extraer todas las observaciones que me sirven
+              var i = 0;
+              for(i;i<items.length;i++){
+                if(items[i].predicate=="http://www.w3.org/2006/time#inXSDDateTime"){
+                  //2016-12-09T01:22:07.232Z^^http://www.w3.org/2001/XMLSchema#dateTime
+                  var d = new Date(items[i].object.substring(0,items[i].object.indexOf('^')));
+                  var options = {  
+                    weekday: "long", 
+                    year: "numeric", 
+                    month: "long",  
+                    day: "numeric", 
+                    hour: "2-digit", 
+                    minute: "2-digit",
+                    second:"2-digit"  
+                  };
+                  date=d.toLocaleString('es-ES', options);
+                }
+                if(items[i].predicate=="http://www.w3.org/2003/01/geo/wgs84_pos#lat"){
+                  //
+                  lat = Number(items[i].object.substring(0,items[i].object.indexOf('^')));
+                }
+                if(items[i].predicate=="http://www.w3.org/2003/01/geo/wgs84_pos#long"){
+                  //
+                  long = Number(items[i].object.substring(0,items[i].object.indexOf('^')));
+                }
+                if(items[i].predicate=="http://www.loa.istc.cnr.it/ontologies/DUL.owl#hasDataValue"){
+                  //
+                  measure = Number(items[i].object.substring(0,items[i].object.indexOf('^')));
+                }
+                
+              }
+              
+            }).on('end', function() {
+               
+              res.render('endpoints', {
+                title: 'Get Endpoints of Device '+tDev,
+                measure: measure, 
+                date: date,
+                lat: lat,
+                lat: lat,
+                qk: qk,
+                unit: unit
+              });
+            })
+          }
+        });
+        request.on('error', function(e) {
+          console.log("ERROR "+e.message);
+        });
+        request.end();
+      });
+    }
+  });
+  request.on('error', function(e) {
+    console.log("ERROR "+e.message);
+  });  
+  request.end();
+};
+
 /*
 
 Nueva peticion basada en enviar un endpoint y leerlo
 https://platform.fiesta-iot.eu/iot-registry/api/endpoints/mqXpJXd6ANGE71m0RMN_bsrldNnjnSBpjrs5aBhBcMm0Q06EO20AP7fSQ_hIl62kVHPWhpv7yqGRS1l3NrFZgRB90-HLazwzZpML-GKrtiZB60qgb1_yHDGKoj__A0eT^^http://www.w3.org/2001/XMLSchema#anyURI
 
 Hay que quitar del enlace lo ultimo ^^http://www.w3.org/2001/XMLSchema#anyURI
+Donde aleatoriamente se recibe un type y los valores siguientes a ese type menos el tipo de datos, por ejemplo:
+
+PREDICATE of a type : http://www.w3.org/1999/02/22-rdf-syntax-ns#type(PREDICATE)
+
+Type fecha: ssn#Instant(OBJECT) -> http://www.w3.org/2006/time#inXSDDateTime(PREDICATE)
+                      (2016-12-09T01:22:07.232Z^^http://www.w3.org/2001/XMLSchema#dateTime)(OBJECT)
+
+Type Localizacion: ssn#Point(OBJECT) -> http://www.w3.org/2003/01/geo/wgs84_pos#lat(PREDICATE)
+                                        (4.346277E1^^http://www.w3.org/2001/XMLSchema#double)(OBJECT)
+                                        http://www.w3.org/2003/01/geo/wgs84_pos#long(PREDICATE)
+                                        (-3.79724E0^^http://www.w3.org/2001/XMLSchema#double)(OBJECT)
+
+Type Medida: ssn#ObservationValue(OBJECT) -> http://purl.oclc.org/NET/UNIS/fiware/iot-lite#hasUnit(PREDICATE) -> http://www.loa.istc.cnr.it/ontologies/DUL.owl#hasDataValue(PREDICATE)
+                                                                                                                  (8.5E1^^http://www.w3.org/2001/XMLSchema#double)(OBJECT)
+
+Type Observacion: ssn#Observation(OBJECT) -> ssn#observationResult(PREDICATE) ->ssn#observationSamplingTime(PREDICATE) -> ssn#observedBy(PREDICATE) -> ssn#observedProperty(PREDICATE) -> wgs84_pos#location(PREDICATE)
+
+Type Sensor que lo mide: ssn#SensorOutput(OBJECT) -> ssn#hasValue(PREDICATE)
+
+Se saca con las propiedades de los devices antes-----------------------
+Type Unidades OBJECT es por ejemplo m3-lite#DegreeCelsius
+
+Type que mide OBJECT es por ejemplo m3-lite#AirTemperature
 
 Se recibe una peticion del tipo:
 {
@@ -535,30 +669,5 @@ Se recibe una peticion del tipo:
     }
   ]
 }
-
-Donde aleatoriamente se recibe un type y los valores siguientes a ese type menos el tipo de datos, por ejemplo:
-
-PREDICATE of a type : http://www.w3.org/1999/02/22-rdf-syntax-ns#type(PREDICATE)
-
-Type fecha: ssn#Instant(OBJECT) -> http://www.w3.org/2006/time#inXSDDateTime(PREDICATE)
-                      (2016-12-09T01:22:07.232Z^^http://www.w3.org/2001/XMLSchema#dateTime)(OBJECT)
-
-Type Localizacion: ssn#Point(OBJECT) -> http://www.w3.org/2003/01/geo/wgs84_pos#lat(PREDICATE)
-                                        (4.346277E1^^http://www.w3.org/2001/XMLSchema#double)(OBJECT)
-                                        http://www.w3.org/2003/01/geo/wgs84_pos#long(PREDICATE)
-                                        (-3.79724E0^^http://www.w3.org/2001/XMLSchema#double)(OBJECT)
-
-Type Medida: ssn#ObservationValue(OBJECT) -> http://purl.oclc.org/NET/UNIS/fiware/iot-lite#hasUnit(PREDICATE) -> http://www.loa.istc.cnr.it/ontologies/DUL.owl#hasDataValue(PREDICATE)
-                                                                                                                  (8.5E1^^http://www.w3.org/2001/XMLSchema#double)(OBJECT)
-
-Type Observacion: ssn#Observation(OBJECT) -> ssn#observationResult(PREDICATE) ->ssn#observationSamplingTime(PREDICATE) -> ssn#observedBy(PREDICATE) -> ssn#observedProperty(PREDICATE) -> wgs84_pos#location(PREDICATE)
-
-Type Sensor que lo mide: ssn#SensorOutput(OBJECT) -> ssn#hasValue(PREDICATE)
-
-Se saca con las propiedades de los devices antes-----------------------
-Type Unidades OBJECT es por ejemplo m3-lite#DegreeCelsius
-
-Type que mide OBJECT es por ejemplo m3-lite#AirTemperature
-
 */
 //-----------------------------------------------------------------------------------------
