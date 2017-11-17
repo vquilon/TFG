@@ -393,6 +393,7 @@ exports.readMongoDevofDep = function(req,res,next){
     Para coger los parametros de un formulario con post req.body.:id
     Para coger los parametros de un formulario por get(en la url) con req.query.:id
   */
+  var allD=0;
   var nameDep = req.body.nDep;//para ver que se envia desde el formulario
   var dep = req.body.dep;
   var preUrl = req.body.preUrl;
@@ -449,10 +450,12 @@ exports.readMongoDevofDep = function(req,res,next){
                   if(items[i].subD!=undefined){
                     var j=0;
                     //Busca los subsystemas que tiene ese device y los mete en un array
-                    for(j;j<items.length;j++){
+                    for(j;j+i<items.length;j++){
                       if(items[i+j].dev==items[i].dev){
                         auxS.push(items[i+j].subD.substring(items[i+j].subD.lastIndexOf("/")+1));
                         auxT.push(items[i+j].typeSubD.substring(items[i+j].typeSubD.lastIndexOf("#")+1));
+                        //NUMERO DEVICES
+                        allD++;
                         if(items[i+j].endp/*SD*/!=undefined){
                           auxE.push(items[i+j].endp/*SD*/.substring(0,items[i+j].endp/*SD*/.lastIndexOf("^")-1));
                         }
@@ -489,6 +492,7 @@ exports.readMongoDevofDep = function(req,res,next){
                   else{//Deberia diferenciar entre El systema y subsistemas(los unicos que se ven ahora)
                     auxS.push(items[i].dev.substring(items[i].dev.lastIndexOf("/")+1));
                     auxT.push(items[i].type.substring(items[i].type.lastIndexOf("#")+1));
+                    allD++;
                     if(items[i].endp!=undefined){
                       auxE.push(items[i].endp.substring(0,items[i].endp.lastIndexOf("^")-1));
                     }
@@ -529,6 +533,7 @@ exports.readMongoDevofDep = function(req,res,next){
                   typeDev.push(items[i].type.substring(items[i].type.lastIndexOf("#")+1));
                   //Todo el enlace
                   devices.push(items[i].dev);
+                  allD++;
                   //Solo el número identificativo despues de el ultimo /
                   //devs.push(items[i].dev.substring(items[i].dev.lastIndexOf("/")+1));
                   if(items[i].endp!=undefined){
@@ -574,7 +579,8 @@ exports.readMongoDevofDep = function(req,res,next){
         typeSubs: typeSubs,
         endSubs: endSubs,
         qkSubs: qkSubs,
-        unitSubs: unitSubs
+        unitSubs: unitSubs,
+        allD: allD
       });
 
       db.close();
@@ -586,6 +592,167 @@ exports.readMongoDevofDep = function(req,res,next){
 
 
 exports.readMongoDevofDep2 = function(req,res,next){
+  /*Para coger los parametros de la url es con req.params.:id
+    Para coger los parametros de un formulario con post req.body.:id
+    Para coger los parametros de un formulario por get(en la url) con req.query.:id
+  */
+  var allD=0;
+  var nameDep = req.body.nDep;//para ver que se envia desde el formulario
+  var dep = req.body.dep;
+  var preUrl = req.body.preUrl;
+  console.log("Nombre del deployment seleccionado:"+nameDep);
+  console.log("Nombre de la url del deployment:"+dep);
+  dep = preUrl + dep;
+  
+  var fismoArray = [];
+  mongo.connect(urlMongdb, function(err, db){
+    if(err) throw err;
+    var cursor = db.collection('fismos').find();
+    cursor.forEach(function(doc, err){
+      fismoArray.push(doc);
+    }, function(){
+      //LA FIESTA VA AQUI
+      var dataJson = JSON.parse(fismoArray[1].data);
+      var items = dataJson.items;
+      var devices = [];//dispositivos que son su propio systema
+      var typeDev = [];
+      var endpoints = [];
+      var qks = [];
+      var units = [];
+      //var devs = [];
+      //Array de systemas
+      var sys = [];
+      //Array de array donde van los subsistemas
+      var subsystems = [];
+      var typeSubs = [];
+      var endSubs = [];
+      var qkSubs = [];
+      var unitSubs = [];
+      //Extraer todos los devices que me sirven
+      var i = 0;
+      var numSys = 0;
+      for(i;i<items.length;i++){
+      //if(items[i].dev.substring(0,d.lastIndexOf("/"))!="https://platform.fiesta-iot.eu/iot-registry/api/observations"){
+        if(items[i].Dep!=undefined/* || items[i].DepofS!=undefined*/){
+        //Si el device no tiene Depl o un systema con Deplo no sirve el device
+          if(items[i].Dep==dep/* || items[i].DepofS==dep*/){//Que el deployment sea el que se ha seleccionado
+            //Los dev que tienen un sys se añaden en otro momento
+            if(items[i].dev!=undefined){//hay subD o no
+                //Solo leo los dispositivos que son del tipo Device osea systemas
+              if(items[i].sys!=undefined){
+                //typeDev.push("System");
+                sys.push(items[i].sys.substring(items[i].sys.lastIndexOf("/")+1));
+                var auxS = [];
+                var auxT = [];
+                var auxE = [];
+                var auxqK = [];
+                var auxU = [];
+                //Agregar aqui PLATFORM con localizacion
+                var j=0;
+                //Busca los subsystemas que tiene ese device y los mete en un array
+                for(j;j+i<items.length;j++){
+                  if(items[i+j].sys!=undefined){
+                    if(items[i+j].sys==items[i].sys){
+                      allD++;
+                      auxS.push(items[i+j].dev.substring(items[i+j].dev.lastIndexOf("/")+1));
+                      auxT.push(items[i+j].typeS.substring(items[i+j].typeS.lastIndexOf("#")+1));
+                      if(items[i+j].endp/*SD*/!=undefined){
+                        auxE.push(items[i+j].endp/*SD*/.substring(0,items[i+j].endp/*SD*/.lastIndexOf("^")-1));
+                      }
+                      else{
+                        auxE.push("No endp");
+                      }
+                      //Puede que haya que hacer sentencia if else pero en teoria todos los devices tienen un qk y unit
+                      if(items[i+j].qK/*SD*/!=undefined){
+                        auxqK.push(items[i+j].qK/*SD*/.substring(items[i+j].qK/*SD*/.lastIndexOf("#")+1));
+                      }
+                      else{
+                        auxqK.push("No QK");
+                      }
+                      if(items[i+j].unit/*SD*/!=undefined){
+                        auxU.push(items[i+j].unit/*SD*/.substring(items[i+j].unit/*SD*/.lastIndexOf("#")+1));
+                      }
+                      else{
+                        auxU.push("No UNIT");
+                      }             
+                    }
+                    else{
+                      i=i+j;//Continua el valor de i mas los subsystemas agregados con valor j
+                      break;
+                     }
+                  }
+                  
+                }
+                 
+                subsystems.push(auxS);
+                typeSubs.push(auxT);
+                endSubs.push(auxE);
+                qkSubs.push(auxqK);
+                unitSubs.push(auxU);
+                numSys++;
+                  
+              }
+              else{//Device == SYSTEM
+                typeDev.push(items[i].typeS.substring(items[i].typeS.lastIndexOf("#")+1));
+                //Todo el enlace
+                devices.push(items[i].dev);
+                allD++;
+                //Solo el número identificativo despues de el ultimo /
+                //devs.push(items[i].dev.substring(items[i].dev.lastIndexOf("/")+1));
+                if(items[i].endp!=undefined){
+                    endpoints.push(items[i].endp.substring(0,items[i].endp.lastIndexOf("^")-1));
+                  }
+                else{
+                  endpoints.push("No endp");
+                }
+                if(items[i].qK!=undefined){
+                    qks.push(items[i].qK.substring(items[i].qK.lastIndexOf("#")+1));
+                  }
+                  else{
+                    qks.push("No QK");
+                  }
+                  if(items[i].unit!=undefined){
+                    units.push(items[i].unit.substring(items[i].unit.lastIndexOf("#")+1));
+                  }
+                  else{
+                    units.push("No UNIT");
+                  }
+                //Agregar aqui PLATFORM con localizacion
+              }
+            }
+          }
+        }
+      }
+      console.log("Length of sys"+sys.length);//Misma longitud que el de abajo
+      console.log("Length of sys in subsystems"+subsystems.length);
+      console.log("Length of sys in Typesubsystems"+subsystems.length);
+      res.render('devices', {
+        title: 'Get Devices of Deployment '+nameDep,
+        nameDep: nameDep,
+        devices: devices,//enlace entero
+        typeDev: typeDev,
+        endpoints: endpoints,
+        qks: qks,
+        units: units,
+        //devs: devs,//id despues de la /
+        sys: sys,
+        subsystems: subsystems,
+        typeSubs: typeSubs,
+        endSubs: endSubs,
+        qkSubs: qkSubs,
+        unitSubs: unitSubs,
+        allD: allD
+      });
+
+      db.close();
+    });
+  });
+
+ 
+};
+
+
+exports.readMongoCrossOver = function(req,res,next){
   /*Para coger los parametros de la url es con req.params.:id
     Para coger los parametros de un formulario con post req.body.:id
     Para coger los parametros de un formulario por get(en la url) con req.query.:id
@@ -780,6 +947,7 @@ exports.readMongoDevofDep2 = function(req,res,next){
 
  
 };
+
 
 
 exports.readFileDevofDep = function(req,res,next){

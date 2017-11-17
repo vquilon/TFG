@@ -38,7 +38,7 @@ router.get('/deployments', controller_fismo.deploymentsReadMongo);
 router.post('/:nameDep/readFileDevices', controller_fismo.readFileDevofDep);
 router.post('/:nameDep/readMongoDevices', controller_fismo.readMongoDevofDep);
 router.post('/:nameDep/readMongoDevices2', controller_fismo.readMongoDevofDep2);
-
+router.post('/:nameDep/readMongoCrossOver', controller_fismo.readMongoCrossOver);
 //Controller Mongo y Rest
 router.get('/deploymentsRest', controller_rest.deployments);
 router.post('/:nameDep/devices', controller_rest.DevOfDep);

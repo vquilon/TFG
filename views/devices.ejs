@@ -1,7 +1,7 @@
 <% include header %>
 
-  <h1><%=title %></h1>
-  <h2>Systems with its subsystems: <%=sys.length %></h2>
+  <h1><%=title %> <%=allD%></h1>
+  <h2><%=sys.length %> Systems with <%=allD-devices.length%> subsystems</h2>
   <% for(var i=0;i<sys.length;i++){ %>
     <h3>System <%=i+1 %> with Devices <%=subsystems[i].length %></h3>
     <% for(var j=0;j<subsystems[i].length;j++){ %>
@@ -22,7 +22,7 @@
     <hr>
   <%}%>
   <%if(devices.length!=0){%>
-  <h2>Devices without any System <%=devices.length %></h2>
+  <h2><%=devices.length %> Devices without any System</h2>
   <% for(var i=0;i<devices.length;i++){ %>
     <p>Quantity Kind: <%=qks[i]%></p>
     <p>Unit: <%=units[i]%></p>
