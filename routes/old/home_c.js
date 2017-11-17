@@ -3,7 +3,7 @@ var archivoTipo = "";
 var express = require('express');
   router = express.Router(),
   mongoose = require('mongoose'),
-  ReqSPARQL = mongoose.model('ReqSPARQL');//Poner modelo que guarda de los fesmos
+  ReqSPARQL = mongoose.model('ReqSPARQL');//Poner modelo que guarda de los fismos
   fs = require('fs');
   multer = require('multer');
 

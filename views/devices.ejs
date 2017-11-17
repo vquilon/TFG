@@ -1,9 +1,9 @@
 <% include header %>
 
   <h1><%=title %></h1>
-  <h2>Systems with its subsystems</h2>
+  <h2>Systems with its subsystems: <%=sys.length %></h2>
   <% for(var i=0;i<sys.length;i++){ %>
-    <h3>System</h3>
+    <h3>System <%=i+1 %> with Devices <%=subsystems[i].length %></h3>
     <% for(var j=0;j<subsystems[i].length;j++){ %>
       <p>Quantity Kind: <%=qkSubs[i][j]%></p>
       <p>Unit: <%=unitSubs[i][j]%></p>
@@ -21,7 +21,8 @@
     <%}%>
     <hr>
   <%}%>
-  <h2>Devices without any System</h2>
+  <%if(devices.length!=0){%>
+  <h2>Devices without any System <%=devices.length %></h2>
   <% for(var i=0;i<devices.length;i++){ %>
     <p>Quantity Kind: <%=qks[i]%></p>
     <p>Unit: <%=units[i]%></p>
@@ -37,5 +38,5 @@
     <br>
   <%}%>
   <hr>
-  	
+  <%}%>
 <% include footer %>

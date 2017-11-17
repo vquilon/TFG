@@ -4,7 +4,7 @@ var http = require('http');
 var async = require('async');
 var mongoose = require('mongoose'),
 	//Deployments = mongoose.model('Deployments'),
-	fesmo = mongoose.model('fesmo');//Poner modelo que guarda de los fesmos
+	fismo = mongoose.model('fismo');//Poner modelo que guarda de los fismos
 
 var number;
 number = fs.readdirSync('files/');

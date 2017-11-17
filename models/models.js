@@ -15,15 +15,15 @@ DeploymentsSchema.virtual('date')
 
 mongoose.model('deployments', DeploymentsSchema);
 // SPARQL Request
-var fesmoSchema = new Schema({
+var fismoSchema = new Schema({
   name: String,
   info: String,
   data: String
 });
 
-fesmoSchema.virtual('date')
+fismoSchema.virtual('date')
   .get(function(){
     return this._id.getTimestamp();
   });
 
-mongoose.model('fesmo', fesmoSchema);
+mongoose.model('fismo', fismoSchema);

@@ -22,22 +22,22 @@ var upload = multer({ storage: storage });
 var upload2 = multer();
 
 var controller = require('../controllers/controller');
-var controller_fesmo = require('../controllers/controller_fesmo');
+var controller_fismo = require('../controllers/controller_fismo');
 var controller_rest = require('../controllers/controller_rest');
 var controller_wf = require('../controllers/controller_wf');
 
 /* GET home page. */
 router.get('/', controller.home);
 
-//Controller Fesmo
-router.post('/', upload.any(), controller_fesmo.fesmo);
-router.post('/fesmo', upload2.any(), controller_fesmo.fesmo2);
-router.get('/readMongo', controller_fesmo.readMongo);
-router.get('/readFiles', controller_fesmo.readFiles);
-router.get('/deployments', controller_fesmo.deploymentsReadMongo);
-router.post('/:nameDep/readFileDevices', controller_fesmo.readFileDevofDep);
-router.post('/:nameDep/readMongoDevices', controller_fesmo.readMongoDevofDep);
-
+//Controller fismo
+router.post('/', upload.any(), controller_fismo.fismo);
+router.post('/fismo', upload2.any(), controller_fismo.fismo2);
+router.get('/readMongo', controller_fismo.readMongo);
+router.get('/readFiles', controller_fismo.readFiles);
+router.get('/deployments', controller_fismo.deploymentsReadMongo);
+router.post('/:nameDep/readFileDevices', controller_fismo.readFileDevofDep);
+router.post('/:nameDep/readMongoDevices', controller_fismo.readMongoDevofDep);
+router.post('/:nameDep/readMongoDevices2', controller_fismo.readMongoDevofDep2);
 
 //Controller Mongo y Rest
 router.get('/deploymentsRest', controller_rest.deployments);

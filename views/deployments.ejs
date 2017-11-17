@@ -2,12 +2,21 @@
 
   <h1><%=title %></h1>
   <% for(var i=0;i<deps.length;i++){ %>
+    <h3><%=nameDeps[i]%></h3>
   	<form action="/<%=nameDeps[i]%>/readMongoDevices" method="post" >
   		<input value="<%=deps[i]%>" name="dep" type="hidden"/>
   		<input value="<%=nameDeps[i]%>" name="nDep" type="hidden"/>
   		<input value="<%=preUrlDeps[i]%>" name="preUrl" type="hidden"/>
-  		<button type="submit"><%=nameDeps[i]%></button>
+  		<button type="submit">VER POR DEVICES</button>
   	</form>
+    <br>
+    <form action="/<%=nameDeps[i]%>/readMongoDevices2" method="post" >
+      <input value="<%=deps[i]%>" name="dep" type="hidden"/>
+      <input value="<%=nameDeps[i]%>" name="nDep" type="hidden"/>
+      <input value="<%=preUrlDeps[i]%>" name="preUrl" type="hidden"/>
+      <button type="submit">VER POR SENSORES</button>
+    </form>
+  	<hr>
   	<%}%>
 
 <% include footer %>
