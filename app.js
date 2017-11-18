@@ -30,7 +30,7 @@ db.once('open', function() {
 var index = require('./routes/index');
 var users = require('./routes/users');
 //SCHEDULED ACTIONS
-var scheduled = require('.scheduled/scheduledAction.js');
+var scheduled = require('./scheduled/scheduledAction.js');
 var app = express();
 
 // view engine setup
