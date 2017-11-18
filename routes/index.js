@@ -22,7 +22,7 @@ var upload = multer({ storage: storage });
 var upload2 = multer();
 
 var controller = require('../controllers/controller');
-var controller_fismo = require('../controllers/controller_fismo');
+var controller_mongoDBFile = require('../controllers/controller_mongoDBFile');
 var controller_rest = require('../controllers/controller_rest');
 var controller_wf = require('../controllers/controller_wf');
 
@@ -30,21 +30,25 @@ var controller_wf = require('../controllers/controller_wf');
 router.get('/', controller.home);
 
 //Controller fismo
-router.post('/', upload.any(), controller_fismo.fismo);
-router.post('/fismo', upload2.any(), controller_fismo.fismo2);
-router.get('/readMongo', controller_fismo.readMongo);
-router.get('/readFiles', controller_fismo.readFiles);
-router.get('/deployments', controller_fismo.deploymentsReadMongo);
-router.post('/:nameDep/readFileDevices', controller_fismo.readFileDevofDep);
-router.post('/:nameDep/readMongoDevices', controller_fismo.readMongoDevofDep);
-router.post('/:nameDep/readMongoDevices2', controller_fismo.readMongoDevofDep2);
-router.post('/:nameDep/readMongoCrossOver', controller_fismo.readMongoCrossOver);
+router.post('/', upload.any(), controller_mongoDBFile.fismo);
+router.post('/fismo', upload2.any(), controller_mongoDBFile.fismo2);
+router.get('/readMongo', controller_mongoDBFile.readMongo);
+router.get('/readFiles', controller_mongoDBFile.readFiles);
+router.get('/deployments', controller_mongoDBFile.deploymentsReadMongo);
+router.post('/:nameDep/readFileDevices', controller_mongoDBFile.readFileDevofDep);
+router.post('/:nameDep/readMongoDevices', controller_mongoDBFile.readMongoDevofDep);
+router.post('/:nameDep/readMongoDevices2', controller_mongoDBFile.readMongoDevofDep2);
+router.post('/:nameDep/readMongoCrossOver', controller_mongoDBFile.readMongoCrossOver);
+
 //Controller Mongo y Rest
 router.get('/deploymentsRest', controller_rest.deployments);
 router.post('/:nameDep/devices', controller_rest.DevOfDep);
 router.post('/:nameDep/:tDev/observations', controller_rest.ObsOfDev);
 //NUEVO por endpoints
 router.post('/:nameDep/:tDev/endpoint', controller_rest.EndpOfDev);
+
+//NUEVO controler para llevar el scheduled time y guardado en MongoDB
+router.post('/:nameDep/:tDev/scheduled', controller_mongoDBFile.scheduledAction);
 
 //Controller Water Fall
 router.get('/deploymentsWF', controller_wf.deploymentsWF);

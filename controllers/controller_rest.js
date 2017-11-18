@@ -1,5 +1,8 @@
 var https = require('https');
 var http = require('http');
+var Intl = require('intl');
+
+var APIKeyGMJS = "AIzaSyD5m1jKSlB97XyZOOITUKLjKXsyZKCpW-o";
 
 var optionsToken = {
   host: 'platform.fiesta-iot.eu',
@@ -175,9 +178,9 @@ exports.deployments = function(req,res,next){
 };
 
 exports.DevOfDep = function(req,res,next){
-  /*Para coger los parametros de la url es con req.params.:id
-    Para coger los parametros de un formulario con post req.body.:id
-    Para coger los parametros de un formulario por get(en la url) con req.query.:id*/
+  /*Para coger los parametros de la url es con req.params.id(en la ruta /:id)
+    Para coger los parametros de un formulario con post req.body.id
+    Para coger los parametros de un formulario por get(en la url ?id=) con req.query.id*/
   var nameDep = req.body.nDep;//para ver que se envia desde el formulario
   var dep = req.body.dep;
   var preUrl = req.body.preUrl;
@@ -297,7 +300,7 @@ exports.DevOfDep = function(req,res,next){
 */
 exports.ObsOfDev = function(req, res, next){
   var dev = req.body.devf;//url full
-  var tDev = req.query.tDev;//tipo del device (el nombre añadir mas adelante un nombre)
+  var tDev = req.params.tDev;//tipo del device (el nombre añadir mas adelante un nombre)
   var dMin = new Date(req.body.dateMin);
   var dMax = new Date(req.body.dateMax);
   var token = '';
@@ -426,16 +429,17 @@ exports.ObsOfDev = function(req, res, next){
 };
 
 exports.EndpOfDev = function(req, res, next){
+  var nameDep = req.params.nameDep;
+  var tDev = req.params.tDev;//tipo del device (el nombre añadir mas adelante un nombre)
   var dev = req.body.devf;//url full
-  var tDev = req.query.tDev;//tipo del device (el nombre añadir mas adelante un nombre)
   var endp = req.body.endp;
   var qk = req.body.qk;
   var unit = req.body.unit;
-  var endpURI = endp.substring(endp.lastIndexOf("/")+1);//Nos quedamos solo con la id del endpoint
-  var host = endp.substring(endp.indexOf("://")+3).substring(0,endp.substring(endp.indexOf("://")+3).indexOf('/'));
-  var path = endp.substring(endp.substring(endp.indexOf("://")+3).indexOf('/')+endp.indexOf('://')+3, endp.lastIndexOf('/')+1);
+  if(endp!="NODATA"){
+    var endpURI = endp.substring(endp.lastIndexOf("/")+1);//Nos quedamos solo con la id del endpoint
+    var host = endp.substring(endp.indexOf("://")+3).substring(0,endp.substring(endp.indexOf("://")+3).indexOf('/'));
+    var path = endp.substring(endp.substring(endp.indexOf("://")+3).indexOf('/')+endp.indexOf('://')+3, endp.lastIndexOf('/')+1);
   var token = '';
-  console.log("tDev "+tDev);
   var request = https.request(optionsToken, function(response) {
     console.log('STATUS /token: ' + response.statusCode);
     if(response.statusCode === 401){
@@ -460,10 +464,10 @@ exports.EndpOfDev = function(req, res, next){
             }
         };
         //Variables a presentar finalmente
-        var date;
-        var lat;
-        var long;
-        var measure;
+        var date="";
+        var lat="";
+        var long="";
+        var measure="";
 
         var request = https.request(options, function(response) {
           console.log('STATUS /observations: ' + response.statusCode);
@@ -474,51 +478,58 @@ exports.EndpOfDev = function(req, res, next){
           else{
             console.log('HEADERS /endpoints: ' + JSON.stringify(response.headers));
             response.on('data', function(chunk) {
-              console.log("CHUNK "+chunk);
               var JsonChunk = JSON.parse(chunk);
-              var items = JsonChunk.items;
-              //Extraer todas las observaciones que me sirven
-              var i = 0;
-              for(i;i<items.length;i++){
-                if(items[i].predicate=="http://www.w3.org/2006/time#inXSDDateTime"){
-                  //2016-12-09T01:22:07.232Z^^http://www.w3.org/2001/XMLSchema#dateTime
-                  var d = new Date(items[i].object.substring(0,items[i].object.indexOf('^')));
-                  var options = {  
-                    weekday: "long", 
-                    year: "numeric", 
-                    month: "long",  
-                    day: "numeric", 
-                    hour: "2-digit", 
-                    minute: "2-digit",
-                    second:"2-digit"  
-                  };
-                  date=d.toLocaleString('es-ES', options);
+              if(JsonChunk["@graph"]!=undefined){
+                var graph = JsonChunk["@graph"];
+              
+              
+                //Extraer todas las observaciones que me sirven
+                var i = 0;
+                for(i;i<graph.length;i++){
+                  if(graph[i]["@type"]=="http://www.w3.org/2006/time#Instant"){
+                    //2016-12-09T01:22:07.232Z^^http://www.w3.org/2001/XMLSchema#dateTime
+                    var d = new Date(graph[i].inXSDDateTime);
+                    var lang = ["es"]; //using an array because of quirk in Chrome
+                    var options = {  
+                      weekday: "long", 
+                      year: "numeric", 
+                      month: "long",  
+                      day: "numeric", 
+                      hour: "2-digit", 
+                      minute: "2-digit",
+                      second:"2-digit"  
+                    };
+                    var formatter = new Intl.DateTimeFormat(lang, options);
+                    //date=d.toLocaleString('es-ES', options);
+                    date=formatter.format(d);
+
+                  }
+                  if(graph[i]["@type"]=="http://www.w3.org/2003/01/geo/wgs84_pos#Point"){
+                    lat = graph[i]["http://www.w3.org/2003/01/geo/wgs84_pos#lat"];
+                    long = graph[i]["http://www.w3.org/2003/01/geo/wgs84_pos#long"];
+                  }
+                  if(graph[i]["@type"]=="http://purl.oclc.org/NET/ssnx/ssn#ObservationValue"){
+                    //
+                    measure = graph[i]["http://www.loa.istc.cnr.it/ontologies/DUL.owl#hasDataValue"];
+                  }
+                  
                 }
-                if(items[i].predicate=="http://www.w3.org/2003/01/geo/wgs84_pos#lat"){
-                  //
-                  lat = Number(items[i].object.substring(0,items[i].object.indexOf('^')));
-                }
-                if(items[i].predicate=="http://www.w3.org/2003/01/geo/wgs84_pos#long"){
-                  //
-                  long = Number(items[i].object.substring(0,items[i].object.indexOf('^')));
-                }
-                if(items[i].predicate=="http://www.loa.istc.cnr.it/ontologies/DUL.owl#hasDataValue"){
-                  //
-                  measure = Number(items[i].object.substring(0,items[i].object.indexOf('^')));
-                }
-                
               }
               
             }).on('end', function() {
                
               res.render('endpoints', {
-                title: 'Get Endpoints of Device '+tDev,
+                title: 'Get Endpoint of Device '+tDev,
                 measure: measure, 
                 date: date,
                 lat: lat,
-                lat: lat,
+                long: long,
                 qk: qk,
-                unit: unit
+                unit: unit,
+                nameDep: nameDep,
+                tDev: tDev,
+                dev: dev,
+                APIKeyGMJS: APIKeyGMJS//PARA EL MAPA TEMPORAL
               });
             })
           }
@@ -534,6 +545,27 @@ exports.EndpOfDev = function(req, res, next){
     console.log("ERROR "+e.message);
   });  
   request.end();
+  }
+  else{
+    var date="";
+    var lat="";
+    var long="";
+    var measure="";
+    res.render('endpoints', {
+      title: 'Get Endpoint of Device '+tDev,
+      measure: measure, 
+      date: date,
+      lat: lat,
+      long: long,
+      qk: qk,
+      unit: unit,
+      nameDep: nameDep,
+      tDev: tDev,
+      dev: dev,
+      APIKeyGMJS: APIKeyGMJS//PARA EL MAPA , es TEMPORAL
+    });
+  }
+
 };
 
 /*
@@ -568,106 +600,101 @@ Type que mide OBJECT es por ejemplo m3-lite#AirTemperature
 
 Se recibe una peticion del tipo:
 {
-  "vars": [
-    "subject", "predicate", "object"
-  ]
-  "items": [
+  "@graph": [
     {
-      "subject": "https://platform.fiesta-iot.eu/iot-registry/api/observations/u5NTYfjZsUO2asBFiYcFC98JvtV3K3TKsXvAJfMJrT3FbDpAjHeosiNJaUSw8CAR6rRYgmOg5qFjt1SyY5YB7uECf2lEfxwOUAmUe2BXXWJ2BJx7xMT_SbQlMnF6pZkHoXPRT9Xr2IBrDBP1g1d_4Q==",
-      "predicate": "http://www.w3.org/1999/02/22-rdf-syntax-ns#type",
-      "object": "http://purl.org/iot/vocab/m3-lite#Percent"
+      "@id": "https://platform.fiesta-iot.eu/iot-registry/api/observations/55QJpSyYNuSYDmXstDF3LZ8QRekKiccftefGdzNxv0MPX_V3AoMmZ0Urc8Vt6KbD_rsQv_5Rejlp32SEeDHKjL9sCpixoiilt87Qz0w0b5MQ3lyCZDmrV5YlpxlkX3qahyVjgUvNAI3rvl2eWSojnRnDO-zKam7vIwMkxnMPOVy6JduEy8LaAVWQWDCoKlWm",
+      "@type": "http://purl.org/iot/vocab/m3-lite#MicrogramPerCubicMetre"
     },
     {
-      "subject": "https://platform.fiesta-iot.eu/iot-registry/api/observations/LGjfeR6yReaqi0jaYhNd-MQceY_J9jAsGj1V18XSrbd8ymIht7n4EUKRHV9F8ny5",
-      "predicate": "http://www.w3.org/1999/02/22-rdf-syntax-ns#type",
-      "object": "http://www.w3.org/2006/time#Instant"
+      "@id": "https://platform.fiesta-iot.eu/iot-registry/api/observations/7axQhj_LGQalV1RnoOwQanAWu0z1JtXlauxyHGpo6zqA54MOwjowzUgj7DSDs5a6IkJ8aQOU0JVpPRLejP2fmkwckGdO2dmadSkPzTJ5nAMV1-pDFnjwKmgFje-a76IiiWxzvzBFQDeBFbxiwsJW7jZbDz32iEit9oNWKx6QMjj_wj3Vut46ObChB37L6fnS",
+      "@type": "http://purl.org/iot/vocab/m3-lite#ChemicalAgentAtmosphericConcentrationNO2"
     },
     {
-      "subject": "https://platform.fiesta-iot.eu/iot-registry/api/observations/LGjfeR6yReaqi0jaYhNd-MQceY_J9jAsGj1V18XSrbd8ymIht7n4EUKRHV9F8ny5",
-      "predicate": "http://www.w3.org/2006/time#inXSDDateTime",
-      "object": "2016-12-09T01:22:07.232Z^^http://www.w3.org/2001/XMLSchema#dateTime"
+      "@id": "https://platform.fiesta-iot.eu/iot-registry/api/observations/D71goXpI2wRk7xn3tU17olHknAosNuqVR1qXuNbWZJE5Qx1S8TTpR9faWdx4Z-OP",
+      "@type": "http://purl.oclc.org/NET/ssnx/ssn#Observation",
+      "observationResult": "https://platform.fiesta-iot.eu/iot-registry/api/observations/hVla1UX0GebQ7rUNPxWZChZE_cH80R0yRTop0_GCb0aFn4R2yWVhfW3sV0Xllwjk",
+      "observationSamplingTime": "https://platform.fiesta-iot.eu/iot-registry/api/observations/JofutoLCHbctYvSPQBPg99TU1L-PN-QkJ63YjlbAXIb0bt2t4Tx1NFOji0mI3heO",
+      "observedBy": "https://platform.fiesta-iot.eu/iot-registry/api/resources/byaSwddb1aG-M0uFXzEeZxpxltWA_vuTyhY-CaZf2EfxeBu9b5wyG7c7N4xU8Dcy9x3w1-pAIjRur28V8tYqQ8_jPtu4sm-j7SLLKY0kho8U9brDPn-XPDgLaf-_RvkhT6d2kUT_FDigCtfaZpHOoEYMfrLqJQROwYJuPo3Xs5s=",
+      "observedProperty": "https://platform.fiesta-iot.eu/iot-registry/api/observations/7axQhj_LGQalV1RnoOwQanAWu0z1JtXlauxyHGpo6zqA54MOwjowzUgj7DSDs5a6IkJ8aQOU0JVpPRLejP2fmkwckGdO2dmadSkPzTJ5nAMV1-pDFnjwKmgFje-a76IiiWxzvzBFQDeBFbxiwsJW7jZbDz32iEit9oNWKx6QMjj_wj3Vut46ObChB37L6fnS",
+      "location": "https://platform.fiesta-iot.eu/iot-registry/api/observations/oVnQpJzZQ2ouvQqlFd5RiPuf3U_UEGeWnpTV9lafT-khl7tpchJV5Omh29dzDotd"
     },
     {
-      "subject": "https://platform.fiesta-iot.eu/iot-registry/api/observations/P_XUbMCtocnkUpS__TFpeLDVfCo6lk4aboceGt9TBvn5YpMMa7jQKE0CBUbfR0s5WsVNVgj_x9ZT8xACBSYMd7FfxJCGAeEuEoLv1no9si-WorsvDuz0nDl033hAM8ibLOlzP0JJUbemIH5qChPn7w==",
-      "predicate": "http://purl.oclc.org/NET/ssnx/ssn#madeObservation",
-      "object": "https://platform.fiesta-iot.eu/iot-registry/api/observations/pVs372lb0iTsa37CY8Dz2c7oNHAxzgwB8Sbk2Z6iKlGycg-q-h0Ly3VazlA5Z0u5"
+      "@id": "https://platform.fiesta-iot.eu/iot-registry/api/observations/DU1j86UUzmXGPEZDCL5Kaf24hzuylhKhJzOGbcCyOpXv0gA89UbIeIoPaLyeu3SC",
+      "@type": "http://purl.oclc.org/NET/ssnx/ssn#ObservationValue",
+      "hasUnit": "https://platform.fiesta-iot.eu/iot-registry/api/observations/55QJpSyYNuSYDmXstDF3LZ8QRekKiccftefGdzNxv0MPX_V3AoMmZ0Urc8Vt6KbD_rsQv_5Rejlp32SEeDHKjL9sCpixoiilt87Qz0w0b5MQ3lyCZDmrV5YlpxlkX3qahyVjgUvNAI3rvl2eWSojnRnDO-zKam7vIwMkxnMPOVy6JduEy8LaAVWQWDCoKlWm",
+      "http://www.loa.istc.cnr.it/ontologies/DUL.owl#hasDataValue": 115
     },
     {
-      "subject": "https://platform.fiesta-iot.eu/iot-registry/api/observations/SPvv5wDyi8SLraozLnFx_3238KCvnh0GrID6XSIXi6n42acErnnR9YeS5CRfwk14",
-      "predicate": "http://www.w3.org/1999/02/22-rdf-syntax-ns#type",
-      "object": "http://www.w3.org/2003/01/geo/wgs84_pos#Point"
+      "@id": "https://platform.fiesta-iot.eu/iot-registry/api/observations/JofutoLCHbctYvSPQBPg99TU1L-PN-QkJ63YjlbAXIb0bt2t4Tx1NFOji0mI3heO",
+      "@type": "http://www.w3.org/2006/time#Instant",
+      "inXSDDateTime": "2017-10-09T08:40:02.000Z"
     },
     {
-      "subject": "https://platform.fiesta-iot.eu/iot-registry/api/observations/SPvv5wDyi8SLraozLnFx_3238KCvnh0GrID6XSIXi6n42acErnnR9YeS5CRfwk14",
-      "predicate": "http://www.w3.org/2003/01/geo/wgs84_pos#lat",
-      "object": "4.346277E1^^http://www.w3.org/2001/XMLSchema#double"
+      "@id": "https://platform.fiesta-iot.eu/iot-registry/api/observations/P9IwXSBpVET517-YNKS5-NkbU0dRt7hpHTo4DKX9E6onq0RxXmfuVp4odPSA7Ibu8mH9lxIcUNnCZweTfTwAfFeIXnaYVxvyJWmJuFB4JcHDV8JRbytrq4JmUJLwavYV_0Zvbv3nl8jvZ7141msGAl5Wz1X6obVaGDnvl45u9kQ=",
+      "madeObservation": "https://platform.fiesta-iot.eu/iot-registry/api/observations/D71goXpI2wRk7xn3tU17olHknAosNuqVR1qXuNbWZJE5Qx1S8TTpR9faWdx4Z-OP"
     },
     {
-      "subject": "https://platform.fiesta-iot.eu/iot-registry/api/observations/SPvv5wDyi8SLraozLnFx_3238KCvnh0GrID6XSIXi6n42acErnnR9YeS5CRfwk14",
-      "predicate": "http://www.w3.org/2003/01/geo/wgs84_pos#long",
-      "object": "-3.79724E0^^http://www.w3.org/2001/XMLSchema#double"
+      "@id": "https://platform.fiesta-iot.eu/iot-registry/api/observations/hVla1UX0GebQ7rUNPxWZChZE_cH80R0yRTop0_GCb0aFn4R2yWVhfW3sV0Xllwjk",
+      "@type": "http://purl.oclc.org/NET/ssnx/ssn#SensorOutput",
+      "hasValue": "https://platform.fiesta-iot.eu/iot-registry/api/observations/DU1j86UUzmXGPEZDCL5Kaf24hzuylhKhJzOGbcCyOpXv0gA89UbIeIoPaLyeu3SC"
     },
     {
-      "subject": "https://platform.fiesta-iot.eu/iot-registry/api/observations/nEOZr8Q3VMHJ23GWZHY3C4z0gA1XmTTG4SVN62iWCAoi4_SiF4wVhy0seConNkt7",
-      "predicate": "http://www.w3.org/1999/02/22-rdf-syntax-ns#type",
-      "object": "http://purl.oclc.org/NET/ssnx/ssn#ObservationValue"
-    },
-    {
-      "subject": "https://platform.fiesta-iot.eu/iot-registry/api/observations/nEOZr8Q3VMHJ23GWZHY3C4z0gA1XmTTG4SVN62iWCAoi4_SiF4wVhy0seConNkt7",
-      "predicate": "http://purl.oclc.org/NET/UNIS/fiware/iot-lite#hasUnit",
-      "object": "https://platform.fiesta-iot.eu/iot-registry/api/observations/u5NTYfjZsUO2asBFiYcFC98JvtV3K3TKsXvAJfMJrT3FbDpAjHeosiNJaUSw8CAR6rRYgmOg5qFjt1SyY5YB7uECf2lEfxwOUAmUe2BXXWJ2BJx7xMT_SbQlMnF6pZkHoXPRT9Xr2IBrDBP1g1d_4Q=="
-    },
-    {
-      "subject": "https://platform.fiesta-iot.eu/iot-registry/api/observations/nEOZr8Q3VMHJ23GWZHY3C4z0gA1XmTTG4SVN62iWCAoi4_SiF4wVhy0seConNkt7",
-      "predicate": "http://www.loa.istc.cnr.it/ontologies/DUL.owl#hasDataValue",
-      "object": "8.5E1^^http://www.w3.org/2001/XMLSchema#double"
-    },
-    {
-      "subject": "https://platform.fiesta-iot.eu/iot-registry/api/observations/pVs372lb0iTsa37CY8Dz2c7oNHAxzgwB8Sbk2Z6iKlGycg-q-h0Ly3VazlA5Z0u5",
-      "predicate": "http://www.w3.org/1999/02/22-rdf-syntax-ns#type",
-      "object": "http://purl.oclc.org/NET/ssnx/ssn#Observation"
-    },
-    {
-      "subject": "https://platform.fiesta-iot.eu/iot-registry/api/observations/pVs372lb0iTsa37CY8Dz2c7oNHAxzgwB8Sbk2Z6iKlGycg-q-h0Ly3VazlA5Z0u5",
-      "predicate": "http://purl.oclc.org/NET/ssnx/ssn#observationResult",
-      "object": "https://platform.fiesta-iot.eu/iot-registry/api/observations/KAzochaLB3WjYixfmVz5xfG0dTtVx_ED7_X-GOh898Bs75E9XfOTEF7I2pPv6Qf0"
-    },
-    {
-      "subject": "https://platform.fiesta-iot.eu/iot-registry/api/observations/pVs372lb0iTsa37CY8Dz2c7oNHAxzgwB8Sbk2Z6iKlGycg-q-h0Ly3VazlA5Z0u5",
-      "predicate": "http://purl.oclc.org/NET/ssnx/ssn#observationSamplingTime",
-      "object": "https://platform.fiesta-iot.eu/iot-registry/api/observations/LGjfeR6yReaqi0jaYhNd-MQceY_J9jAsGj1V18XSrbd8ymIht7n4EUKRHV9F8ny5"
-    },
-    {
-      "subject": "https://platform.fiesta-iot.eu/iot-registry/api/observations/pVs372lb0iTsa37CY8Dz2c7oNHAxzgwB8Sbk2Z6iKlGycg-q-h0Ly3VazlA5Z0u5",
-      "predicate": "http://purl.oclc.org/NET/ssnx/ssn#observedBy",
-      "object": "https://platform.fiesta-iot.eu/iot-registry/api/resources/vdCPBx20YEufPzIvR8FgVSRriHBa0XmzsSA2icq0Y4gJx3E20zlj4xedXrsW2ihr9SgDEV4RPB1RSWS1iQvwSHV1yIKTVpI54PFaOHdjDEjvoZyivDs4_4sVSt4p2I-9qlE-KMhmeOUVuXYYRQ2S2Q=="
-    },
-    {
-      "subject": "https://platform.fiesta-iot.eu/iot-registry/api/observations/pVs372lb0iTsa37CY8Dz2c7oNHAxzgwB8Sbk2Z6iKlGycg-q-h0Ly3VazlA5Z0u5",
-      "predicate": "http://purl.oclc.org/NET/ssnx/ssn#observedProperty",
-      "object": "https://platform.fiesta-iot.eu/iot-registry/api/observations/kg6Jy-bVkYj4CpK-F8xncizrZieJ9UznV-LSUUf_ZXGkmc4Qltcq71q_-nVw_ulunmlq-2MDdDHCDVsPBG-cfoSFbNu68xKMi0iCm8NFUJEGSTMWEOJ5bIxkMLCY54gz_EWUtA6KaFfIOoevsUr7GQ=="
-    },
-    {
-      "subject": "https://platform.fiesta-iot.eu/iot-registry/api/observations/pVs372lb0iTsa37CY8Dz2c7oNHAxzgwB8Sbk2Z6iKlGycg-q-h0Ly3VazlA5Z0u5",
-      "predicate": "http://www.w3.org/2003/01/geo/wgs84_pos#location",
-      "object": "https://platform.fiesta-iot.eu/iot-registry/api/observations/SPvv5wDyi8SLraozLnFx_3238KCvnh0GrID6XSIXi6n42acErnnR9YeS5CRfwk14"
-    },
-    {
-      "subject": "https://platform.fiesta-iot.eu/iot-registry/api/observations/kg6Jy-bVkYj4CpK-F8xncizrZieJ9UznV-LSUUf_ZXGkmc4Qltcq71q_-nVw_ulunmlq-2MDdDHCDVsPBG-cfoSFbNu68xKMi0iCm8NFUJEGSTMWEOJ5bIxkMLCY54gz_EWUtA6KaFfIOoevsUr7GQ==",
-      "predicate": "http://www.w3.org/1999/02/22-rdf-syntax-ns#type",
-      "object": "http://purl.org/iot/vocab/m3-lite#BatteryLevel"
-    },
-    {
-      "subject": "https://platform.fiesta-iot.eu/iot-registry/api/observations/KAzochaLB3WjYixfmVz5xfG0dTtVx_ED7_X-GOh898Bs75E9XfOTEF7I2pPv6Qf0",
-      "predicate": "http://www.w3.org/1999/02/22-rdf-syntax-ns#type",
-      "object": "http://purl.oclc.org/NET/ssnx/ssn#SensorOutput"
-    },
-    {
-      "subject": "https://platform.fiesta-iot.eu/iot-registry/api/observations/KAzochaLB3WjYixfmVz5xfG0dTtVx_ED7_X-GOh898Bs75E9XfOTEF7I2pPv6Qf0",
-      "predicate": "http://purl.oclc.org/NET/ssnx/ssn#hasValue",
-      "object": "https://platform.fiesta-iot.eu/iot-registry/api/observations/nEOZr8Q3VMHJ23GWZHY3C4z0gA1XmTTG4SVN62iWCAoi4_SiF4wVhy0seConNkt7"
+      "@id": "https://platform.fiesta-iot.eu/iot-registry/api/observations/oVnQpJzZQ2ouvQqlFd5RiPuf3U_UEGeWnpTV9lafT-khl7tpchJV5Omh29dzDotd",
+      "@type": "http://www.w3.org/2003/01/geo/wgs84_pos#Point",
+      "http://www.w3.org/2003/01/geo/wgs84_pos#lat": 43.4694051,
+      "http://www.w3.org/2003/01/geo/wgs84_pos#long": -3.8123466
     }
-  ]
+  ],
+  "@context": {
+    "inXSDDateTime": {
+      "@id": "http://www.w3.org/2006/time#inXSDDateTime",
+      "@type": "http://www.w3.org/2001/XMLSchema#dateTime"
+    },
+    "hasUnit": {
+      "@id": "http://purl.oclc.org/NET/UNIS/fiware/iot-lite#hasUnit",
+      "@type": "@id"
+    },
+    "hasDataValue": {
+      "@id": "http://www.loa.istc.cnr.it/ontologies/DUL.owl#hasDataValue",
+      "@type": "http://www.w3.org/2001/XMLSchema#double"
+    },
+    "hasValue": {
+      "@id": "http://purl.oclc.org/NET/ssnx/ssn#hasValue",
+      "@type": "@id"
+    },
+    "madeObservation": {
+      "@id": "http://purl.oclc.org/NET/ssnx/ssn#madeObservation",
+      "@type": "@id"
+    },
+    "observationResult": {
+      "@id": "http://purl.oclc.org/NET/ssnx/ssn#observationResult",
+      "@type": "@id"
+    },
+    "observationSamplingTime": {
+      "@id": "http://purl.oclc.org/NET/ssnx/ssn#observationSamplingTime",
+      "@type": "@id"
+    },
+    "observedBy": {
+      "@id": "http://purl.oclc.org/NET/ssnx/ssn#observedBy",
+      "@type": "@id"
+    },
+    "observedProperty": {
+      "@id": "http://purl.oclc.org/NET/ssnx/ssn#observedProperty",
+      "@type": "@id"
+    },
+    "location": {
+      "@id": "http://www.w3.org/2003/01/geo/wgs84_pos#location",
+      "@type": "@id"
+    },
+    "lat": {
+      "@id": "http://www.w3.org/2003/01/geo/wgs84_pos#lat",
+      "@type": "http://www.w3.org/2001/XMLSchema#double"
+    },
+    "long": {
+      "@id": "http://www.w3.org/2003/01/geo/wgs84_pos#long",
+      "@type": "http://www.w3.org/2001/XMLSchema#double"
+    }
+  }
 }
 */
 //-----------------------------------------------------------------------------------------

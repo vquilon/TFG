@@ -1,13 +1,47 @@
 <% include header %>
+</head>
+<body>
 
   <h1><%=title %></h1>
   	<div>
-      <p><span>Valor: <%=measure%></span><span><%=unit%></span></p>
-      <p>Tipo de medida: <%=qk%></p>
-      <p>Fecha: <%=date%></p>
-      <p>Latitud: <%=lat%></p>
-      <p>Longitud: <%=long%></p>
-    </div>
-
-  	
+	  	<div style="width: 50%; float:left">
+	  		<h3>Tipo de medida: <strong><%=qk%></strong></h3>
+	    	<p><span>Valor: <strong><%=measure%></strong> </span><span><%=unit%></span></p> 
+	    	<p>Medido el: <strong><%=date%></strong></p>
+	    	<p>Latitud: <strong><%=lat%></strong></p>
+	    	<p>Longitud: <strong><%=long%></strong></p>
+		</div>
+		
+		<%if(lat!="" && long!=""){%>
+		<div style="height: 400px;width: 50%;" id="map"></div>
+		<%}%>
+	</div>
+	    <h3>Notificar cuando pasa de ciertos valores</h3>
+	    <form action="/<%=nameDep%>/<%=tDev%>/endpoint" method="post">
+	    	<p>Valor mínimo incluido<input name="min" type="number"/></p>
+	    	<p>Valor máximo incluido<input name="max" type="number"/></p>
+	    	</span>Acción<input type="text" name="action" value="Enviar Correo" readonly/></p>
+	    	<p>Correo<input name="email" type="email"/></p>
+	        <input value="<%=dev%>" name="dev" type="hidden"/>
+	        <button type="submit">Programar Alerta</button>
+	    </form>
+	
+	<%if(lat!="" && long!=""){%>
+  	<script>  
+	    function initMap() {
+	        var LatLong = new google.maps.LatLng(<%=lat%>,<%=long%>);
+	        var map = new google.maps.Map(document.getElementById('map'), {
+	          zoom: 17,
+	          center: LatLong,
+	          zoomControl: true,
+	          scaleControl: true
+	        });
+	        var marker = new google.maps.Marker({
+	          position: LatLong,
+	        });
+	        marker.setMap(map);
+	      }
+	</script>
+	<script async defer src="https://maps.googleapis.com/maps/api/js?key=<%=APIKeyGMJS%>&callback=initMap"></script>
+	<%}%>
 <% include footer %>

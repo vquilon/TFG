@@ -25,11 +25,12 @@ db.once('open', function() {
 });*/
 
 //CAGAR MODELOS DE LA BD
-var models = require("./models/models.js");
+//var models = require("./models/models.js");
 //RUTAS DE CONTROLADORES
 var index = require('./routes/index');
 var users = require('./routes/users');
-
+//SCHEDULED ACTIONS
+var scheduled = require('.scheduled/scheduledAction.js');
 var app = express();
 
 // view engine setup
