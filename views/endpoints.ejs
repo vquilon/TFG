@@ -17,12 +17,12 @@
 		<%}%>
 	</div>
 	    <h3>Notificar cuando pasa de ciertos valores</h3>
-	    <form action="/<%=nameDep%>/<%=tDev%>/endpoint" method="post">
+	    <form action="/<%=nameDep%>/<%=tDev%>/scheduled" method="post">
 	    	<p>Valor mínimo incluido<input name="min" type="number"/></p>
 	    	<p>Valor máximo incluido<input name="max" type="number"/></p>
 	    	</span>Acción<input type="text" name="action" value="Enviar Correo" readonly/></p>
 	    	<p>Correo<input name="email" type="email"/></p>
-	        <input value="<%=dev%>" name="dev" type="hidden"/>
+	        <input value="<%=endp%>" name="endp" type="hidden"/>
 	        <button type="submit">Programar Alerta</button>
 	    </form>
 	

@@ -54,7 +54,7 @@ EN OTRO SISTEMA ORDENADOS POR LOS DEPLOYMENTS
 //FUNCIONALIDAD CON LA API REST-------------------------------------------------------------
 //DEPLOYMENTS--FUNCIONA CON EL CALLBACK DE https.request (COMO DEBE SER, mas sencillo pero waterfall se recomienda)
 exports.deployments = function(req,res,next){
-  var token = '';
+ 	var token = '';
   var request = https.request(optionsToken, function(response) {
     console.log('STATUS /token: ' + response.statusCode);
     if(response.statusCode === 401){
@@ -435,12 +435,17 @@ exports.EndpOfDev = function(req, res, next){
   var endp = req.body.endp;
   var qk = req.body.qk;
   var unit = req.body.unit;
+  //Variables a presentar finalmente
+  var date="";
+  var lat="";
+  var long="";
+  var measure="";
   if(endp!="NODATA"){
     var endpURI = endp.substring(endp.lastIndexOf("/")+1);//Nos quedamos solo con la id del endpoint
     var host = endp.substring(endp.indexOf("://")+3).substring(0,endp.substring(endp.indexOf("://")+3).indexOf('/'));
     var path = endp.substring(endp.substring(endp.indexOf("://")+3).indexOf('/')+endp.indexOf('://')+3, endp.lastIndexOf('/')+1);
-  var token = '';
-  var request = https.request(optionsToken, function(response) {
+    var token = '';
+    var request = https.request(optionsToken, function(response) {
     console.log('STATUS /token: ' + response.statusCode);
     if(response.statusCode === 401){
       console.info("UNAUTORIZADO");
@@ -463,11 +468,7 @@ exports.EndpOfDev = function(req, res, next){
                 'iPlanetDirectoryPro': token
             }
         };
-        //Variables a presentar finalmente
-        var date="";
-        var lat="";
-        var long="";
-        var measure="";
+        
 
         var request = https.request(options, function(response) {
           console.log('STATUS /observations: ' + response.statusCode);
@@ -529,6 +530,7 @@ exports.EndpOfDev = function(req, res, next){
                 nameDep: nameDep,
                 tDev: tDev,
                 dev: dev,
+                endp: endp,
                 APIKeyGMJS: APIKeyGMJS//PARA EL MAPA TEMPORAL
               });
             })
@@ -547,10 +549,6 @@ exports.EndpOfDev = function(req, res, next){
   request.end();
   }
   else{
-    var date="";
-    var lat="";
-    var long="";
-    var measure="";
     res.render('endpoints', {
       title: 'Get Endpoint of Device '+tDev,
       measure: measure, 
