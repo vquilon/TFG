@@ -36,8 +36,8 @@ router.get('/readMongo', controller_mongoDBFile.readMongo);
 router.get('/readFiles', controller_mongoDBFile.readFiles);
 router.get('/deployments', controller_mongoDBFile.deploymentsReadMongo);
 router.post('/:nameDep/readFileDevices', controller_mongoDBFile.readFileDevofDep);
-router.post('/:nameDep/readMongoDevices', controller_mongoDBFile.readMongoDevofDep);
-router.post('/:nameDep/readMongoDevices2', controller_mongoDBFile.readMongoDevofDep2);
+router.post('/:nameDep/readMongoDevices', controller_mongoDBFile.readMongoDevofDep);//devices 0
+router.post('/:nameDep/readMongoDevices2', controller_mongoDBFile.readMongoDevofDep2);//sensing 1
 router.post('/:nameDep/readMongoCrossOver', controller_mongoDBFile.readMongoCrossOver);
 
 //Controller Mongo y Rest
@@ -54,3 +54,4 @@ router.post('/:nameDep/:tDev/scheduled', controller_mongoDBFile.scheduledAction)
 router.get('/deploymentsWF', controller_wf.deploymentsWF);
 
 module.exports = router;
+//Contraseña vpsadmin@vps165.cesvima.upm.es: 25e097aea662

@@ -301,8 +301,8 @@ exports.DevOfDep = function(req,res,next){
 exports.ObsOfDev = function(req, res, next){
   var dev = req.body.devf;//url full
   var tDev = req.params.tDev;//tipo del device (el nombre añadir mas adelante un nombre)
-  var dMin = new Date(req.body.dateMin);
-  var dMax = new Date(req.body.dateMax);
+  var dMin = req.body.dateMin;
+  var dMax = req.body.dateMax;
   var token = '';
   console.log("tDev "+tDev);
   console.log("dMin "+dMin);
@@ -327,6 +327,7 @@ exports.ObsOfDev = function(req, res, next){
           "PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>"+
           "PREFIX iot-lite: <http://purl.oclc.org/NET/UNIS/fiware/iot-lite#>"+
           "PREFIX time: <http://www.w3.org/2006/time#>"+
+          "Prefix xsd: <http://www.w3.org/2001/XMLSchema#>"+
           "PREFIX dul: <http://www.loa.istc.cnr.it/ontologies/DUL.owl#>"+
           "SELECT ?obs ?s ?sys ?t ?num ?unit "+
           "WHERE {"+
@@ -337,8 +338,8 @@ exports.ObsOfDev = function(req, res, next){
             "} ."+
             "?obs ssn:observationSamplingTime ?time ."+
             "?time time:inXSDDateTime ?t ."+
-            "FILTER (?t > "+dMin+"^^xsd:dateTime) ."+
-            "FILTER (?t < "+dMax+"^^xsd:dateTime) ."+
+            "FILTER (?t > '"+dMin+"'^^xsd:dateTime) ."+
+            "FILTER (?t < '"+dMax+"'^^xsd:dateTime) ."+
             "?obs ssn:observationResult ?result ."+
             "?result ssn:hasValue ?value ."+
             "?value iot-lite:hasUnit ?u ."+
@@ -374,6 +375,7 @@ exports.ObsOfDev = function(req, res, next){
             console.log('HEADERS /observations: ' + JSON.stringify(response.headers));
             response.on('data', function(chunk) {
               console.log("CHUNK "+chunk);
+              //Capturar esto para ver si hay error y transmitir a la pagina un error en el servidor y guardar logs
               var JsonChunk = JSON.parse(chunk);
               var items = JsonChunk.items;
               //Extraer todas las observaciones que me sirven
@@ -391,11 +393,24 @@ exports.ObsOfDev = function(req, res, next){
                     //num form : 10^^http://www.w3.org/2001/XMLSchema#double
                     //unit form : http://purl.org/iot/vocab/m3-lite#Percent
                     var t = items[i].t.substring(0,items[i].t.lastIndexOf("^^"));
-                    var tDate = t.substring(0,t.indexOf("T"));//Coje la fecha
-                    var obsDate = new Date(tDate);
-                    if(tDate>=dMin && tDate<=dMax){//Fecha de la observación tiene que estar entre los valores máx y mín
+
+                    var d = new Date(t);
+                    var lang = ["es"]; //using an array because of quirk in Chrome
+                    var options = {  
+                      weekday: "long", 
+                      year: "numeric", 
+                      month: "long",  
+                      day: "numeric", 
+                      hour: "2-digit", 
+                      minute: "2-digit",
+                      second:"2-digit"  
+                    };
+                    var formatter = new Intl.DateTimeFormat(lang, options);
+                    //date=d.toLocaleString('es-ES', options);
+                    var date=formatter.format(d);
+                    if(t>=dMin && t<=dMax){//Fecha de la observación tiene que estar entre los valores máx y mín
                       obs.push(items[i].obs);
-                      timeObs.push(t.substring(0,t.indexOf(".")));//Coje la fecha y la hora
+                      timeObs.push(date);//Coje la fecha y la hora
                       measures.push(items[i].num.substring(0,items[i].num.indexOf("^^")));
                       units.push(items[i].unit.substring(items[i].unit.indexOf("#")));
                     }
@@ -560,6 +575,7 @@ exports.EndpOfDev = function(req, res, next){
       nameDep: nameDep,
       tDev: tDev,
       dev: dev,
+      endp: endp,
       APIKeyGMJS: APIKeyGMJS//PARA EL MAPA , es TEMPORAL
     });
   }

@@ -1,0 +1,61 @@
+/* animaciones izquierda, derecha, arriba, abajo */
+
+.slide-to-left {
+	-webkit-animation: slide-to-left 1s ease both;
+	animation: slide-to-left 1s ease both;
+}
+
+.slide-to-right {
+	-webkit-animation: slide-to-right 1s ease both;
+	animation: slide-to-right 1s ease both;
+}
+
+.slide-from-left {
+	-webkit-animation: slide-from-left 1s ease both;
+	animation: slide-from-left 1s ease both;
+}
+
+.slide-from-right {
+	-webkit-animation: slide-from-right 1s ease both;
+	animation: slide-from-right 1s ease both;	
+}
+
+/* animacion hacia la izquierda */
+
+@-webkit-keyframes slide-to-left {
+	to { -webkit-transform: translateX(-100%); }
+}
+
+@keyframes slide-to-left {
+	to { -webkit-transform: translateX(-100%); transform: translateX(-100%); }
+}
+
+/* animacion hacia la derecha */
+
+@-webkit-keyframes slide-to-right {
+	to { -webkit-transform: translateX(100%); }
+}
+
+@keyframes slide-to-right {
+	to { -webkit-transform: translateX(100%); transform: translateX(100%); }
+}
+
+/* animacion desde la izquierda */
+
+@-webkit-keyframes slide-from-left {
+	from { -webkit-transform: translateX(-100%); }
+}
+
+@keyframes slide-from-left {
+	from { -webkit-transform: translateX(-100%); transform: translateX(-100%); }
+}
+
+/* animacion desde la derecha */
+
+@-webkit-keyframes slide-from-right {
+	from { -webkit-transform: translateX(100%); }
+}
+
+@keyframes slide-from-right {
+	from { -webkit-transform: translateX(100%); transform: translateX(100%); }
+}

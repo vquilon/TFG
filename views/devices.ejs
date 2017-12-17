@@ -1,42 +1,207 @@
 <% include header %>
+
+  <link href="/dist/datetimepicker/css/bootstrap-datetimepicker.css" rel="stylesheet" type="text/css">
+  <!-- DataTables CSS -->
+  <link rel="stylesheet" type="text/css" href="/dist/DataTables/datatables.min.css"/>
+
 </head>
 <body>
+<% include loader %>
   <h1><%=title %> <%=allD%></h1>
   <h2><%=sys.length %> Systems with <%=allD-devices.length%> subsystems</h2>
-  <% for(var i=0;i<sys.length;i++){ %>
-    <h3>System <%=i+1 %> with Devices <%=subsystems[i].length %></h3>
+  
+  <div class="input-group date" id="datetimepicker1">
+    <input class="form-control" placeholder="Comienzo*" type="text"/>
+    <span class="input-group-addon">
+      <span class="fa fa-calendar"></span>
+    </span>
+  </div>
+  <div class="input-group date" id="datetimepicker2">
+    <input class="form-control" placeholder="Final*" type="text"/>
+    <span class="input-group-addon">
+      <span class="fa fa-calendar"></span>
+    </span>
+  </div>
+  <hr>
+  <table cellpadding="0" cellspacing="0" border="2" class="table table-striped table-bordered" id="tabla1">
+    <thead>
+      <tr>
+        <th>System</th>
+        <th>Device</th>
+        <th>Type of Device</th>
+        <th>Quantity Kind</th>
+        <th>Units</th>
+        <th>Measures</th>
+      </tr>
+    </thead>
+    <tbody>
+    <% for(var i=0;i<sys.length;i++){ %>
     <% for(var j=0;j<subsystems[i].length;j++){ %>
-      <p>Quantity Kind: <%=qkSubs[i][j]%></p>
-      <p>Unit: <%=unitSubs[i][j]%></p>
-      <form action="/<%=nameDep%>/<%=typeSubs[i][j]%>/endpoint" method="post">
-        <input value="<%=subsystems[i][j]%>" name="devf" type="hidden"/>
-        <input value="<%=sys[i]%>" name="sys" type="hidden"/>
-        <input value="<%=endSubs[i][j]%>" name="endp" type="hidden"/>
-        <input value="<%=qkSubs[i][j]%>" name="qk" type="hidden"/>
-        <input value="<%=unitSubs[i][j]%>" name="unit" type="hidden"/>
-        <!--<input type="date" name="dateMin">
-        <input type="date" name="dateMax">-->
-        <button type="submit"><%=typeSubs[i][j]%></button>
-      </form>
-      <br>
+    <tr>
+      <td><%=i+1 %></td>
+      <td><a href="<%=subsystems[i][j]%>">Device <%=i+"-"+j%></a>(<%=subsystems[i].length%>)</td>
+      <td><%=typeSubs[i][j]%></td>
+      <td id="qk<%=i+''+j%>"><%=qkSubs[i][j]%></td>
+      <td id="unit<%=i+''+j%>"><%=unitSubs[i][j]%></td>
+      <td>
+      <%if(endSubs[i][j]!="NODATA"){%>
+        <form action="/<%=nameDep%>/<%=typeSubs[i][j]%>/endpoint" method="post">
+          <input value="<%=subsystems[i][j]%>" name="devf" type="hidden"/>
+          <input value="<%=sys[i]%>" name="sys" type="hidden"/>
+          <input value="<%=endSubs[i][j]%>" name="endp" type="hidden"/>
+          <button class="btn btn-default btn-block" type="submit">Endpoint</button>
+        </form>
+      <%}%>
+        <form action="/<%=nameDep%>/<%=typeSubs[i][j]%>/observations" method="post">
+          <input value="<%=subsystems[i][j]%>" name="devf" type="hidden"/>
+          <input value="<%=sys[i]%>" name="sys" type="hidden"/>
+          <input readonly name="dateMin" type="hidden"/>
+          <input readonly name="dateMax" type="hidden"/>
+          <button class="btn btn-info btn-block" type="submit">Observations</button>
+        </form>
+      </td>
+    </tr>
     <%}%>
-    <hr>
-  <%}%>
+    <%}%>
+  </tbody>        
+  </table>
+  
   <%if(devices.length!=0){%>
-    <h2><%=devices.length %> Devices without any System</h2>
+  <h2><%=devices.length %> Devices without any System</h2>
+  <hr>
+  <table cellpadding="0" cellspacing="0" border="2" class="table table-striped table-bordered" id="tabla2">
+    <thead>
+      <tr>
+        <th>Device</th>
+        <th>Type of Device</th>
+        <th>Quantity Kind</th>
+        <th>Units</th>
+        <th>Measures</th>
+      </tr>
+    </thead>
+    <tbody>
     <% for(var i=0;i<devices.length;i++){ %>
-      <p>Quantity Kind: <%=qks[i]%></p>
-      <p>Unit: <%=units[i]%></p>
-    	<form action="/<%=nameDep%>/<%=typeDev[i]%>/endpoint" method="post" >
-    		<input value="<%=devices[i]%>" name="devf" type="hidden"/>
+      <tr>
+      <td><a href="<%=devices[i]%>">Device <%=i%></a></td>
+      <td><%=typeDev[i]%></td>
+      <td id="qkd<%=i%>"><%=qks[i]%></td>
+      <td id="unitd<%=i%>"><%=units[i]%></td>
+      
+      <td>
+      <%if(endpoints[i]!="NODATA"){%>
+      <form action="/<%=nameDep%>/<%=typeDev[i]%>/endpoint" method="post">
+        <input value="<%=devices[i]%>" name="devf" type="hidden"/>
         <input value="<%=endpoints[i]%>" name="endp" type="hidden"/>
-        <input value="<%=qks[i]%>" name="qk" type="hidden"/>
-        <input value="<%=units[i]%>" name="unit" type="hidden"/>
-    		<!--<input type="date" name="dateMin">
-    		<input type="date" name="dateMax">-->
-    		<button type="submit"><%=typeDev[i]%></button>
-    	</form>
-      <hr>
+        <button class="btn btn-default btn-block" type="submit">Endpoint</button>
+      </form>
+      <%}%>
+      <form action="/<%=nameDep%>/<%=typeDev[i]%>/observations" method="post">
+        <input value="<%=devices[i]%>" name="devf" type="hidden"/>
+        <input readonly type="text" name="dateMin">
+        <input readonly type="text" name="dateMax">
+        <button class="btn btn-info btn-block" type="submit">Observations</button>
+      </form>
+      </td>
+    </tr>
     <%}%>
   <%}%>
+
+
+    <% include scripts %>
+    <!-- Moment -->
+    <script src="/dist/moment/moment-with-locales.min.js"></script>
+    <script src="/dist/datetimepicker/js/bootstrap-datetimepicker.min.js"></script>
+    <script>
+      $(document).ready(function () {
+        $("body").bind("DOMNodeRemoved",function(objEvent){
+          if($(objEvent.target).parent().attr("id")=="datetimepicker1"){
+            $("input[name='dateMin']").val($(objEvent.target).parent().find("input").val());
+          }
+          if($(objEvent.target).parent().attr("id")=="datetimepicker2"){
+            $("input[name='dateMax']").val($(objEvent.target).parent().find("input").val());
+          }
+        });
+      });
+    </script>
+     <script type="text/javascript">
+      $(document).ready(function () {
+        $('#datetimepicker1').datetimepicker({
+          format:"YYYY-MM-DDTHH:mm:ss.SSSZ",
+          icons: {
+            time: 'fa fa-clock-o',
+            date: 'fa fa-calendar',
+            up: 'fa fa-chevron-up',
+            down: 'fa fa-chevron-down',
+            previous: 'fa fa-chevron-left',
+            next: 'fa fa-chevron-right',
+            today: 'fa fa-bullseye',
+            clear: 'fa fa-trash',
+            close: 'fa fa-times'
+          }
+        });
+        $('#datetimepicker2').datetimepicker({
+            format: "YYYY-MM-DDTHH:mm:ss.SSSZ",
+            useCurrent: false,
+            icons: {
+              time: 'fa fa-clock-o',
+              date: 'fa fa-calendar',
+              up: 'fa fa-chevron-up',
+              down: 'fa fa-chevron-down',
+              previous: 'fa fa-chevron-left',
+              next: 'fa fa-chevron-right',
+              today: 'fa fa-bullseye',
+              clear: 'fa fa-trash',
+              close: 'fa fa-times'
+            }
+        });
+        $("#datetimepicker1").on("dp.change", function (e) {
+            $('#datetimepicker2').data("DateTimePicker").minDate(e.date);
+        });
+        $("#datetimepicker2").on("dp.change", function (e) {
+            $('#datetimepicker1').data("DateTimePicker").maxDate(e.date);
+        });
+      });
+    </script>
+    
+    <!-- DataTables JavaScript -->
+    <script type="text/javascript" src="/dist/DataTables/datatables.min.js"></script>
+    <script>
+      $(document).ready(function(){
+        var t1 = $("#tabla1").DataTable({
+          responsive: true,
+          dom: 'Bfrtip',
+          buttons: [
+            /*'copy',*/ 
+            'excel', 
+            'pdf',
+            {
+              text: 'Add selected devices',
+              action: function () {
+                var count = t1.rows({selected: true}).data();
+                console.log(count);
+              }
+            }
+          ],
+          select:true
+        });
+        var t2 = $("#tabla2").DataTable({
+          responsive: true,
+          dom: 'Bfrtip',
+          buttons: [
+            /*'copy',*/ 
+            'excel', 
+            'pdf',
+            {
+              text: 'Add selected devices',
+              action: function () {
+                var count = t2.rows({selected: true}).data();
+                console.log(count);
+              }
+            }
+          ],
+          select:true
+        });
+      });
+    </script>
+  
 <% include footer %>
