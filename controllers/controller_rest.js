@@ -62,15 +62,14 @@ exports.deployments = function(req,res,next){
     }
     else{
       console.log('HEADERS /token: ' + JSON.stringify(response.headers));
-      var bodyChunks = [];
       var deps = [];
       var nameDeps = [];
       var preUrlDeps = [];
 
       response.on('data', function(chunk) {
-        bodyChunks.push(chunk);
-        token = JSON.parse(chunk).tokenId;
+        body+=chunk;
       }).on('end', function() {
+        token = JSON.parse(body).tokenId;
         var postData = 
           "Prefix ssn: <http://purl.oclc.org/NET/ssnx/ssn#>"+
           "SELECT ?Dep"+
@@ -89,6 +88,7 @@ exports.deployments = function(req,res,next){
             }
         };
         var request = https.request(options, function(response) {
+          var body="";
           console.log('STATUS /deployments: ' + response.statusCode);
           if(response.statusCode === 401){
             //Token no valido unautorizado
@@ -98,7 +98,9 @@ exports.deployments = function(req,res,next){
             console.log('HEADERS /deployments: ' + JSON.stringify(response.headers));
             response.on('data', function(chunk) {
               console.log("CHUNK "+chunk);
-              var JsonChunk = JSON.parse(chunk);
+              body+=chunk;
+            }).on('end', function() {
+              var JsonChunk = JSON.parse(body);
               var items = JsonChunk.items;
               for(var i=0;i<items.length;i++){
                 var d = items[i].Dep;
@@ -151,9 +153,6 @@ exports.deployments = function(req,res,next){
 
               }
               console.log("DEPLOYMENTS Json "+ deps);
-
-            }).on('end', function() {
-               
               res.render('deployments', {
                 title: 'Get Deployments',
                 deps: deps, 
@@ -196,9 +195,9 @@ exports.DevOfDep = function(req,res,next){
     }
     else{
       console.log('HEADERS /token: ' + JSON.stringify(response.headers));
-      var bodyChunks = [];
+      var body="";
       response.on('data', function(chunk) {
-        bodyChunks.push(chunk);
+        body+=chunk;
         token = JSON.parse(chunk).tokenId;
       }).on('end', function() {
         //Obtener todos los devices y sub sistemas que coincidadn con un deployment
@@ -209,7 +208,7 @@ exports.DevOfDep = function(req,res,next){
           "PREFIX iot-lite: <http://purl.oclc.org/NET/UNIS/fiware/iot-lite#>"+
           "SELECT ?DepOne ?Dep ?dev ?DepofS ?sys ?type "+
           "WHERE {"+
-            "?dev rdf:type/rdfs:subClassOf ssn:Device ."+
+            "?dev a ssn:Device ."+
             "OPTIONAL{"+
               "?dev rdf:type ?type ."+
               "?dev ssn:hasDeployment ?Dep ."+
@@ -241,6 +240,7 @@ exports.DevOfDep = function(req,res,next){
         var typeDev = [];
         var devs = [];
         var request = https.request(options, function(response) {
+          var body="";
           console.log('STATUS /devices: ' + response.statusCode);
           if(response.statusCode === 401){
             //Token no valido unautorizado
@@ -249,8 +249,10 @@ exports.DevOfDep = function(req,res,next){
           else{
             console.log('HEADERS /devices: ' + JSON.stringify(response.headers));
             response.on('data', function(chunk) {
-              //console.log("CHUNK "+chunk);
-              var JsonChunk = JSON.parse(chunk);
+              console.log("CHUNK "+chunk);
+              body+=chunk
+            }).on('end', function() {
+              var JsonChunk = JSON.parse(body);
               var items = JsonChunk.items;
               //Extraer todos los devices que me sirven
               var i = 0;
@@ -268,7 +270,7 @@ exports.DevOfDep = function(req,res,next){
                   }
                 }
               }
-            }).on('end', function() {
+
               res.render('devices', {
                 title: 'Get Devices of Deployment '+nameDep,
                 devices: devices,
@@ -299,11 +301,15 @@ exports.DevOfDep = function(req,res,next){
   todos los dispositivos que se muestran, o que puedan tener en un futuro, sino no se ponene
 */
 exports.ObsOfDev = function(req, res, next){
-  var dev = req.body.devf;//url full
+  var dev = req.body.devobs;//url full
   var tDev = req.params.tDev;//tipo del device (el nombre añadir mas adelante un nombre)
   var dMin = req.body.dateMin;
   var dMax = req.body.dateMax;
   var token = '';
+  var dep = req.body.dep;
+  var nameDep = req.params.nameDep;
+  var ulrDep = dep.substring(dep.lastIndexOf('/') + 1);
+  var preUrl = dep.substring(0,dep.lastIndexOf('/')+1);
   console.log("tDev "+tDev);
   console.log("dMin "+dMin);
   console.log("dMax "+dMax);
@@ -314,12 +320,13 @@ exports.ObsOfDev = function(req, res, next){
     }
     else{
       console.log('HEADERS /token: ' + JSON.stringify(response.headers));
-      var bodyChunks = [];
+      var body="";
 
       response.on('data', function(chunk) {
-        bodyChunks.push(chunk);
-        token = JSON.parse(chunk).tokenId;
+        body+=chunk;
+        
       }).on('end', function() {
+        token = JSON.parse(body).tokenId;
         //Obtener todas las observaciones que coincidan con un device
         var postData =
           "PREFIX ssn: <http://purl.oclc.org/NET/ssnx/ssn#>"+ 
@@ -337,9 +344,14 @@ exports.ObsOfDev = function(req, res, next){
               "<"+dev+">"+
             "} ."+
             "?obs ssn:observationSamplingTime ?time ."+
-            "?time time:inXSDDateTime ?t ."+
-            "FILTER (?t > '"+dMin+"'^^xsd:dateTime) ."+
-            "FILTER (?t < '"+dMax+"'^^xsd:dateTime) ."+
+            "?time time:inXSDDateTime ?t .";
+            if(dMin!=""){
+            	postData=postData+"FILTER (?t > '"+dMin+"'^^xsd:dateTime) .";
+            }
+            if(dMax!=""){
+            	postData=postData+"FILTER (?t < '"+dMax+"'^^xsd:dateTime) .";	
+            }
+            postData=postData+
             "?obs ssn:observationResult ?result ."+
             "?result ssn:hasValue ?value ."+
             "?value iot-lite:hasUnit ?u ."+
@@ -366,6 +378,7 @@ exports.ObsOfDev = function(req, res, next){
         var measures = [];//medidas de las observaciones
         var units = [];//unidades de las observaciones
         var request = https.request(options, function(response) {
+          var body="";
           console.log('STATUS /observations: ' + response.statusCode);
           if(response.statusCode === 401){
             //Token no valido unautorizado
@@ -376,56 +389,67 @@ exports.ObsOfDev = function(req, res, next){
             response.on('data', function(chunk) {
               console.log("CHUNK "+chunk);
               //Capturar esto para ver si hay error y transmitir a la pagina un error en el servidor y guardar logs
-              var JsonChunk = JSON.parse(chunk);
-              var items = JsonChunk.items;
-              //Extraer todas las observaciones que me sirven
-              if(items.length==0){
-                //No hay observaciones de este sensor
-                console.log("VACIOOOOOO");
-              }
-              else{
-                console.log("LLEEEENOO");
-                var i = 0;
-                for(i;i<items.length;i++){
-                  if(items[i].obs!=undefined){
-                    //La Z es UTC el .356 solo son los milisegundos....
-                    //t form : 2017-03-23T07:08:07.356Z
-                    //num form : 10^^http://www.w3.org/2001/XMLSchema#double
-                    //unit form : http://purl.org/iot/vocab/m3-lite#Percent
-                    var t = items[i].t.substring(0,items[i].t.lastIndexOf("^^"));
+              body+=chunk;
+            }).on('end', function() {
+              if(response.statusCode===200){
+                var JsonChunk = JSON.parse(body);
+                var items = JsonChunk.items;
+                //Extraer todas las observaciones que me sirven
+                if(items.length==0){
+                  //No hay observaciones de este sensor
+                  console.log("VACIOOOOOO");
+                }
+                else{
+                  console.log("LLEEEENOO");
+                  var i = 0;
+                  for(i;i<items.length;i++){
+                    if(items[i].obs!=undefined){
+                      //La Z es UTC el .356 solo son los milisegundos....
+                      //t form : 2017-03-23T07:08:07.356Z
+                      //num form : 10^^http://www.w3.org/2001/XMLSchema#double
+                      //unit form : http://purl.org/iot/vocab/m3-lite#Percent
+                      var t = items[i].t.substring(0,items[i].t.lastIndexOf("^^"));
 
-                    var d = new Date(t);
-                    var lang = ["es"]; //using an array because of quirk in Chrome
-                    var options = {  
-                      weekday: "long", 
-                      year: "numeric", 
-                      month: "long",  
-                      day: "numeric", 
-                      hour: "2-digit", 
-                      minute: "2-digit",
-                      second:"2-digit"  
-                    };
-                    var formatter = new Intl.DateTimeFormat(lang, options);
-                    //date=d.toLocaleString('es-ES', options);
-                    var date=formatter.format(d);
-                    if(t>=dMin && t<=dMax){//Fecha de la observación tiene que estar entre los valores máx y mín
-                      obs.push(items[i].obs);
-                      timeObs.push(date);//Coje la fecha y la hora
-                      measures.push(items[i].num.substring(0,items[i].num.indexOf("^^")));
-                      units.push(items[i].unit.substring(items[i].unit.indexOf("#")));
+                      var d = new Date(t);
+                      var lang = ["es"]; //using an array because of quirk in Chrome
+                      var options = {  
+                        weekday: "long", 
+                        year: "numeric", 
+                        month: "long",  
+                        day: "numeric", 
+                        hour: "2-digit", 
+                        minute: "2-digit",
+                        second:"2-digit"  
+                      };
+                      var formatter = new Intl.DateTimeFormat(lang, options);
+                      //date=d.toLocaleString('es-ES', options);
+                      var date=formatter.format(d);
+                      //if(t>=dMin && t<=dMax){//Fecha de la observación tiene que estar entre los valores máx y mín
+                        obs.push(items[i].obs);
+                        timeObs.push(date);//Coje la fecha y la hora
+                        measures.push(Number(items[i].num.substring(0,items[i].num.indexOf("^^"))));
+                        units.push(items[i].unit.substring(items[i].unit.indexOf("#")+1));
+                      //}
                     }
                   }
-                }
+                } 
+
+                res.render('observations', {
+                  title: 'Observations of Device '+tDev,
+                  obs: obs, 
+                  timeObs: timeObs,
+                  measures: measures,
+                  units: units,
+                  preUrl: preUrl,
+                  ulrDep: ulrDep,
+                  nameDep: nameDep
+                });
               }
-            }).on('end', function() {
-               
-              res.render('observations', {
-                title: 'Get Observations of Device '+tDev,
-                obs: obs, 
-                timeObs: timeObs,
-                measures: measures,
-                units: units
-              });
+              else{
+                var backURL=req.header('Referer') || '/';
+                // do your thang
+                res.redirect(backURL);
+              }
             })
           }
         });
@@ -467,12 +491,13 @@ exports.EndpOfDev = function(req, res, next){
     }
     else{
       console.log('HEADERS /token: ' + JSON.stringify(response.headers));
-      var bodyChunks = [];
+      var body="";
 
       response.on('data', function(chunk) {
-        bodyChunks.push(chunk);
-        token = JSON.parse(chunk).tokenId;
+        body+=chunk;
+        
       }).on('end', function() {
+        token = JSON.parse(body).tokenId;
         var options = {
           host: host,//'platform.fiesta-iot.eu',
           path: path+endpURI,//'/iot-registry/api/endpoints/'+,
@@ -486,6 +511,7 @@ exports.EndpOfDev = function(req, res, next){
         
 
         var request = https.request(options, function(response) {
+          var body="";
           console.log('STATUS /observations: ' + response.statusCode);
           if(response.statusCode === 401){
             //Token no valido unautorizado
@@ -494,7 +520,11 @@ exports.EndpOfDev = function(req, res, next){
           else{
             console.log('HEADERS /endpoints: ' + JSON.stringify(response.headers));
             response.on('data', function(chunk) {
-              var JsonChunk = JSON.parse(chunk);
+            body+=chunk
+              
+            }).on('end', function() {
+               
+              var JsonChunk = JSON.parse(body);
               if(JsonChunk["@graph"]!=undefined){
                 var graph = JsonChunk["@graph"];
               
@@ -531,11 +561,9 @@ exports.EndpOfDev = function(req, res, next){
                   
                 }
               }
-              
-            }).on('end', function() {
-               
+
               res.render('endpoints', {
-                title: 'Get Endpoint of Device '+tDev,
+                title: 'Endpoint of Device '+tDev,
                 measure: measure, 
                 date: date,
                 lat: lat,
@@ -565,7 +593,7 @@ exports.EndpOfDev = function(req, res, next){
   }
   else{
     res.render('endpoints', {
-      title: 'Get Endpoint of Device '+tDev,
+      title: 'Endpoint of Device '+tDev,
       measure: measure, 
       date: date,
       lat: lat,

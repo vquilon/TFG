@@ -3,130 +3,202 @@
   <link href="/dist/datetimepicker/css/bootstrap-datetimepicker.css" rel="stylesheet" type="text/css">
   <!-- DataTables CSS -->
   <link rel="stylesheet" type="text/css" href="/dist/DataTables/datatables.min.css"/>
-
+  
 </head>
 <body>
 <% include loader %>
-  <h1><%=title %> <%=allD%></h1>
-  <h2><%=sys.length %> Systems with <%=allD-devices.length%> subsystems</h2>
-  
-  <div class="input-group date" id="datetimepicker1">
-    <input class="form-control" placeholder="Comienzo*" type="text"/>
-    <span class="input-group-addon">
-      <span class="fa fa-calendar"></span>
-    </span>
+<% include navbar %>
+  <main role="main" class="container-fluid">
+    <h1 class="text-center"><%=title %> <span class="badge badge-primary"><%=allD%></span></h1>
+    <hr>
+    <div class="row">
+      <div class="col-lg-4">
+      <h5 style="margin: 0px !important" class="text-center">Select Dates to search observations</h5>
+      </div>
+      <div class="col-lg-4">
+        <div class="input-group date" id="datetimepicker1">
+          <input class="form-control" placeholder="Starts" type="text"/>
+          <span class="input-group-addon">
+            <span class="fa fa-calendar"></span>
+          </span>
+        </div>
+      </div>
+      <div class="col-lg-4">
+        <div class="input-group date" id="datetimepicker2">
+          <input class="form-control" placeholder="Ends" type="text"/>
+          <span class="input-group-addon">
+            <span class="fa fa-calendar"></span>
+          </span>
+        </div>
+      </div>
+    </div>
+    <hr>
+    <%if(subsystems.length!=0){%>
+    <div class="row">
+      <div class="col-lg-12">
+        <h2 class="text-center"><%=sys.length %> Systems with <%=allD-devices.length%> subsystems</h2>
+        <table cellpadding="0" cellspacing="0" border="2" class="table table-striped table-bordered" id="tabla1">
+          <thead>
+            <tr>
+              <th>System</th>
+              <th>Type of Device</th>
+              <th>Quantity Kind</th>
+              <th>Last Value</th>
+              <th>Units</th>
+              <th>Search</th>
+            </tr>
+          </thead>
+          <tbody>
+          <% for(var i=0;i<sys.length;i++){ %>
+          <% for(var j=0;j<subsystems[i].length;j++){ %>
+          <tr>
+            <td><%=i+1 %></td>
+            <td class="type"><%=typeSubs[i][j]%></td>
+            <td class="qk" id="qk<%=i+''+j%>"><%=qkSubs[i][j]%></td>
+            <td class="num" id="num<%=i+''+j%>"><% if(measureSubs[i][j]=="NODATA"){measureSubs[i][j]="--"}%><%=measureSubs[i][j]%></td>
+            <td class="unit" id="unit<%=i+''+j%>"><%=unitSubs[i][j]%></td>
+            <td>
+            <%if(endSubs[i][j]!="NODATA"){%>
+              <form action="/<%=nameDep%>/<%=typeSubs[i][j]%>/endpoint" method="post">
+                <input value="<%=subsystems[i][j]%>" name="devf" type="hidden"/>
+                <input value="<%=sys[i]%>" name="sys" type="hidden"/>
+                <input value="<%=endSubs[i][j]%>" name="endp" type="hidden"/>
+                <input value="<%=qkSubs[i][j]%>" name="qk" type="hidden"/>
+                <input value="<%=unitSubs[i][j]%>" name="unit" type="hidden"/>
+                <input type="hidden" name="dep" value="<%=dep%>">
+                <button class="btn btn-link btn-block" type="submit">Endpoint</button>
+              </form>
+              <hr class="button"> 
+            <%}%>
+              <form action="/<%=nameDep%>/<%=typeSubs[i][j]%>/observations" method="post">
+                <input value="<%=subsystems[i][j]%>" name="devobs" type="hidden"/>
+                <input value="<%=sys[i]%>" name="sys" type="hidden"/>
+                <input readonly name="dateMin" type="hidden"/>
+                <input readonly name="dateMax" type="hidden"/>
+                <input value="<%=qkSubs[i][j]%>" name="qk" type="hidden"/>
+                <input value="<%=unitSubs[i][j]%>" name="unit" type="hidden"/>
+                <input type="hidden" name="dep" value="<%=dep%>">
+                <button class="btn btn-link btn-block" type="submit">Observations</button>
+              </form>
+            </td>
+          </tr>
+          <%}%>
+          <%}%>
+        </tbody>        
+        </table>
+      </div>
+    </div>
+    <%}%>
+    <%if(devices.length!=0){%>
+    <div class="row">
+      <div class="col-lg-12">
+      <h2 class="text-center"><%=devices.length %> Devices without any System</h2>
+        <table cellpadding="0" cellspacing="0" border="2" class="table table-striped table-bordered" id="tabla2">
+          <thead>
+            <tr>
+              <th>Device</th>
+              <th>Type of Device</th>
+              <th>Quantity Kind</th>
+              <th>Last Value</th>
+              <th>Units</th>
+              <th>Search</th>
+            </tr>
+          </thead>
+          <tbody>
+          <% for(var i=0;i<devices.length;i++){ %>
+            <tr>
+            <td><%=i+1%></td>
+            <td><%=typeDev[i]%></td>
+            <td id="qkd<%=i%>"><%=qks[i]%></td>
+            <td class="num" id="num<%=i%>"><% if(measures[i]=="NODATA"){measures[i]="--"}%><%=measures[i]%></td>
+            <td id="unitd<%=i%>"><%=units[i]%></td>
+            
+            <td>
+            <%if(endpoints[i]!="NODATA"){%>
+            <form action="/<%=nameDep%>/<%=typeDev[i]%>/endpoint" method="post">
+              <input value="<%=devices[i]%>" name="devf" type="hidden"/>
+              <input value="<%=endpoints[i]%>" name="endp" type="hidden"/>
+              <input value="<%=qks[i]%>" name="qk" type="hidden"/>
+              <input value="<%=units[i]%>" name="unit" type="hidden"/>
+              <input type="hidden" name="dep" value="<%=dep%>">
+              <button class="btn btn-link btn-block" type="submit">Endpoint</button>
+            </form>
+            <hr class="button">
+            <%}%>
+            <form action="/<%=nameDep%>/<%=typeDev[i]%>/observations" method="post">
+              <input value="<%=devices[i]%>" name="devobs" type="hidden"/>
+              <input readonly type="hidden" name="dateMin">
+              <input readonly type="hidden" name="dateMax">
+              <input value="<%=qks[i]%>" name="qk" type="hidden"/>
+              <input value="<%=units[i]%>" name="unit" type="hidden"/>
+              <input type="hidden" name="dep" value="<%=dep%>">
+              <button class="btn btn-link btn-block" type="submit">Observations</button>
+            </form>
+            </td>
+          </tr>
+          <%}%>
+        </tbody>
+      </table>
+    </div>
   </div>
-  <div class="input-group date" id="datetimepicker2">
-    <input class="form-control" placeholder="Final*" type="text"/>
-    <span class="input-group-addon">
-      <span class="fa fa-calendar"></span>
-    </span>
-  </div>
-  <hr>
-  <table cellpadding="0" cellspacing="0" border="2" class="table table-striped table-bordered" id="tabla1">
-    <thead>
-      <tr>
-        <th>System</th>
-        <th>Device</th>
-        <th>Type of Device</th>
-        <th>Quantity Kind</th>
-        <th>Units</th>
-        <th>Measures</th>
-      </tr>
-    </thead>
-    <tbody>
-    <% for(var i=0;i<sys.length;i++){ %>
-    <% for(var j=0;j<subsystems[i].length;j++){ %>
-    <tr>
-      <td><%=i+1 %></td>
-      <td><a href="<%=subsystems[i][j]%>">Device <%=i+"-"+j%></a>(<%=subsystems[i].length%>)</td>
-      <td><%=typeSubs[i][j]%></td>
-      <td id="qk<%=i+''+j%>"><%=qkSubs[i][j]%></td>
-      <td id="unit<%=i+''+j%>"><%=unitSubs[i][j]%></td>
-      <td>
-      <%if(endSubs[i][j]!="NODATA"){%>
-        <form action="/<%=nameDep%>/<%=typeSubs[i][j]%>/endpoint" method="post">
-          <input value="<%=subsystems[i][j]%>" name="devf" type="hidden"/>
-          <input value="<%=sys[i]%>" name="sys" type="hidden"/>
-          <input value="<%=endSubs[i][j]%>" name="endp" type="hidden"/>
-          <button class="btn btn-default btn-block" type="submit">Endpoint</button>
-        </form>
-      <%}%>
-        <form action="/<%=nameDep%>/<%=typeSubs[i][j]%>/observations" method="post">
-          <input value="<%=subsystems[i][j]%>" name="devf" type="hidden"/>
-          <input value="<%=sys[i]%>" name="sys" type="hidden"/>
-          <input readonly name="dateMin" type="hidden"/>
-          <input readonly name="dateMax" type="hidden"/>
-          <button class="btn btn-info btn-block" type="submit">Observations</button>
-        </form>
-      </td>
-    </tr>
-    <%}%>
-    <%}%>
-  </tbody>        
-  </table>
-  
-  <%if(devices.length!=0){%>
-  <h2><%=devices.length %> Devices without any System</h2>
-  <hr>
-  <table cellpadding="0" cellspacing="0" border="2" class="table table-striped table-bordered" id="tabla2">
-    <thead>
-      <tr>
-        <th>Device</th>
-        <th>Type of Device</th>
-        <th>Quantity Kind</th>
-        <th>Units</th>
-        <th>Measures</th>
-      </tr>
-    </thead>
-    <tbody>
-    <% for(var i=0;i<devices.length;i++){ %>
-      <tr>
-      <td><a href="<%=devices[i]%>">Device <%=i%></a></td>
-      <td><%=typeDev[i]%></td>
-      <td id="qkd<%=i%>"><%=qks[i]%></td>
-      <td id="unitd<%=i%>"><%=units[i]%></td>
-      
-      <td>
-      <%if(endpoints[i]!="NODATA"){%>
-      <form action="/<%=nameDep%>/<%=typeDev[i]%>/endpoint" method="post">
-        <input value="<%=devices[i]%>" name="devf" type="hidden"/>
-        <input value="<%=endpoints[i]%>" name="endp" type="hidden"/>
-        <button class="btn btn-default btn-block" type="submit">Endpoint</button>
-      </form>
-      <%}%>
-      <form action="/<%=nameDep%>/<%=typeDev[i]%>/observations" method="post">
-        <input value="<%=devices[i]%>" name="devf" type="hidden"/>
-        <input readonly type="text" name="dateMin">
-        <input readonly type="text" name="dateMax">
-        <button class="btn btn-info btn-block" type="submit">Observations</button>
-      </form>
-      </td>
-    </tr>
-    <%}%>
   <%}%>
+    <hr>
+    <div class="row">
+      <div class="col-lg-6">
+        <h3 class="text-center">Map</h3>
+        <div style="height: 400px;width: 100%;" id="map"></div>
+      </div>
 
+      <div class="col-lg-6">
+        <h3 class="text-center">Create Devices List</h3>
+        <div style="height: 400px;width: 100%;">
+          <form action="/<%=nameDep%>/saveListDevices" id="devices-selected" method="post">
+            <div id="title-list">
+              <p class="text-center">Select the devices of the above table and click "Add selected devices" to create a list</p>
+            </div>
+            <div style="overflow-y: auto; height: 200px;" id="devices-text"></div>
+          </form>
+        </div>
+      </div>
+    </div>
 
-    <% include scripts %>
-    <!-- Moment -->
-    <script src="/dist/moment/moment-with-locales.min.js"></script>
-    <script src="/dist/datetimepicker/js/bootstrap-datetimepicker.min.js"></script>
-    <script>
-      $(document).ready(function () {
-        $("body").bind("DOMNodeRemoved",function(objEvent){
-          if($(objEvent.target).parent().attr("id")=="datetimepicker1"){
-            $("input[name='dateMin']").val($(objEvent.target).parent().find("input").val());
-          }
-          if($(objEvent.target).parent().attr("id")=="datetimepicker2"){
-            $("input[name='dateMax']").val($(objEvent.target).parent().find("input").val());
-          }
-        });
+  </main>
+  <% include footer %>
+  <% include scripts %>
+  <!-- Moment -->
+  <script src="/dist/moment/moment-with-locales.min.js"></script>
+  <script src="/dist/datetimepicker/js/bootstrap-datetimepicker.min.js"></script>
+  <script>
+    $(document).ready(function () {
+      $("body").bind("DOMNodeRemoved",function(objEvent){
+        if($(objEvent.target).parent().attr("id")=="datetimepicker1"){
+          $("input[name='dateMin']").val($(objEvent.target).parent().find("input").val());
+        }
+        if($(objEvent.target).parent().attr("id")=="datetimepicker2"){
+          $("input[name='dateMax']").val($(objEvent.target).parent().find("input").val());
+        }
       });
-    </script>
-     <script type="text/javascript">
-      $(document).ready(function () {
-        $('#datetimepicker1').datetimepicker({
-          format:"YYYY-MM-DDTHH:mm:ss.SSSZ",
+    });
+  </script>
+   <script type="text/javascript">
+    $(document).ready(function () {
+      $('#datetimepicker1').datetimepicker({
+        format:"YYYY-MM-DDTHH:mm:ss.SSSZ",
+        icons: {
+          time: 'fa fa-clock-o',
+          date: 'fa fa-calendar',
+          up: 'fa fa-chevron-up',
+          down: 'fa fa-chevron-down',
+          previous: 'fa fa-chevron-left',
+          next: 'fa fa-chevron-right',
+          today: 'fa fa-bullseye',
+          clear: 'fa fa-trash',
+          close: 'fa fa-times'
+        }
+      });
+      $('#datetimepicker2').datetimepicker({
+          format: "YYYY-MM-DDTHH:mm:ss.SSSZ",
+          useCurrent: false,
           icons: {
             time: 'fa fa-clock-o',
             date: 'fa fa-calendar',
@@ -138,70 +210,189 @@
             clear: 'fa fa-trash',
             close: 'fa fa-times'
           }
-        });
-        $('#datetimepicker2').datetimepicker({
-            format: "YYYY-MM-DDTHH:mm:ss.SSSZ",
-            useCurrent: false,
-            icons: {
-              time: 'fa fa-clock-o',
-              date: 'fa fa-calendar',
-              up: 'fa fa-chevron-up',
-              down: 'fa fa-chevron-down',
-              previous: 'fa fa-chevron-left',
-              next: 'fa fa-chevron-right',
-              today: 'fa fa-bullseye',
-              clear: 'fa fa-trash',
-              close: 'fa fa-times'
-            }
-        });
-        $("#datetimepicker1").on("dp.change", function (e) {
-            $('#datetimepicker2').data("DateTimePicker").minDate(e.date);
-        });
-        $("#datetimepicker2").on("dp.change", function (e) {
-            $('#datetimepicker1').data("DateTimePicker").maxDate(e.date);
-        });
       });
-    </script>
-    
-    <!-- DataTables JavaScript -->
-    <script type="text/javascript" src="/dist/DataTables/datatables.min.js"></script>
-    <script>
-      $(document).ready(function(){
-        var t1 = $("#tabla1").DataTable({
-          responsive: true,
-          dom: 'Bfrtip',
-          buttons: [
-            /*'copy',*/ 
-            'excel', 
-            'pdf',
-            {
-              text: 'Add selected devices',
-              action: function () {
-                var count = t1.rows({selected: true}).data();
-                console.log(count);
-              }
-            }
-          ],
-          select:true
-        });
-        var t2 = $("#tabla2").DataTable({
-          responsive: true,
-          dom: 'Bfrtip',
-          buttons: [
-            /*'copy',*/ 
-            'excel', 
-            'pdf',
-            {
-              text: 'Add selected devices',
-              action: function () {
-                var count = t2.rows({selected: true}).data();
-                console.log(count);
-              }
-            }
-          ],
-          select:true
-        });
+      $("#datetimepicker1").on("dp.change", function (e) {
+          $('#datetimepicker2').data("DateTimePicker").minDate(e.date);
       });
-    </script>
+      $("#datetimepicker2").on("dp.change", function (e) {
+          $('#datetimepicker1').data("DateTimePicker").maxDate(e.date);
+      });
+    });
+  </script>
   
-<% include footer %>
+  <!-- DataTables JavaScript -->
+  <script type="text/javascript" src="/dist/DataTables/datatables.min.js"></script>
+  <script>
+    $(document).ready(function(){
+      var t1 = $("#tabla1").DataTable({
+        responsive: true,
+        dom: 'lfrtipB',
+        buttons: [
+          /*'copy',*/ 
+          'excel', 
+          'pdf',
+          //'colvis',
+          {
+            text: 'Add selected devices',
+            className: "add-devices",
+            action: function () {
+              if(t1.rows('.selected').count()==0){
+                console.log("CERO");
+                $(".add-devices").attr("data-toggle","popover");
+                $(".add-devices").attr("title","Tint");
+                $(".add-devices").attr("data-content","Please select some devices to add");
+              }
+              else{
+                $(".add-devices").removeAttr("data-toggle");
+                $(".add-devices").removeAttr("title");
+                $(".add-devices").removeAttr("data-content");
+                var data = t1.rows({selected: true}).data().each(function(e){
+                  var dev = ($(e[5]).find("input[name='devobs']")).val();
+                  var flag=false;
+                  $("#devices-selected").find("input[name='devices']").each(function(t){
+                    if(dev==$(this).val()){
+                      flag=true;
+                    }
+                  });
+                  if(!flag){
+                    if($("#title-list").find("input[name='title']").length==0){
+                      $("#title-list").append("<input required type='text' name='title' placeholder='List Name'/>")
+                      $("#devices-selected").append("<div id='send-list' class='text-right'><button class='btn btn-success' type='submit'>Create List</button></div>");
+                    }
+                    $("#devices-text").append("<div class='row container-fluid'><div class='col'>System "+e[0]+"</div><div class='col'>"+e[1]+"</div></div>");
+                    $("#devices-selected").append("<input type='hidden' name='devices' value='"+dev+"'>"+"<input type='hidden' name='types' value='"+e[1]+"'>");  
+                  }
+                });
+              }
+            }
+          }
+        ],
+        select:true,
+        "language": {
+          "paginate": {
+            "previous": "<",
+            "next":">"
+          }
+        },
+        "lengthMenu": [[5, 10, 50, -1], [5, 10, 50, "All"]]
+      });
+      var t2 = $("#tabla2").DataTable({
+        responsive: true,
+        dom: 'lfrtipB',
+        buttons: [
+          /*'copy',*/ 
+          'excel', 
+          'pdf',
+          //'colvis',
+          {
+            text: 'Add selected devices',
+            className: "add-devices",
+            action: function () {
+                if(t2.rows('.selected').count()==0){
+                console.log("CERO");
+                $(".add-devices").attr("data-toggle","popover");
+                $(".add-devices").attr("title","Tint");
+                $(".add-devices").attr("data-content","Please select some devices to add");
+              }
+              else{
+                $(".add-devices").removeAttr("data-toggle");
+                $(".add-devices").removeAttr("title");
+                $(".add-devices").removeAttr("data-content");
+                var data = t2.rows({selected: true}).data().each(function(e){
+                  var dev = ($(e[5]).find("input[name='devobs']")).val();
+                  var flag=false;
+                  $("#devices-selected").find("input[name='devices']").each(function(t){
+                    if(dev==$(this).val()){
+                      flag=true;
+                    }
+                  });
+                  if(!flag){
+                    if($("#title-list").find("input[name='title']").length==0){
+                      $("#title-list").append("<input required type='text' name='title' placeholder='List Name'/>")
+                      $("#devices-selected").append("<div id='send-list' class='text-right'><button class='btn btn-success' type='submit'>Create List</button></div>");
+                    }
+                    $("#devices-text").append("<div class='row container-fluid'><div class='col'>Device "+e[0]+"</div><div class='col'>"+e[1]+"</div></div>");
+                    $("#devices-selected").append("<p>"+e[1]+"</p><input type='hidden' name='devices' value='"+dev+"'>"+"<input type='hidden' name='types' value='"+e[1]+"'>");  
+                  }
+                });
+              }
+            }
+          }
+        ],
+        select:true,
+        "language": {
+          "paginate": {
+            "previous": "<",
+            "next":">"
+          }
+        },
+        "lengthMenu": [[5, 10, 50, -1], [5, 10, 50, "All"]]
+      });
+    
+      $('.add-devices').popover('toggle');        
+      $(".dt-buttons .btn").each(function(e){
+          $(this).removeClass("btn-secondary");
+          $(this).addClass("btn-light");
+      });
+    });
+  </script>
+  <script>
+    //$(document).ready(function(){
+      var lat="NODATA";
+      var long="NODATA";
+      //var pos ="NODATA";
+      <%if(positionSubs[0]){%>
+        <%if(positionSubs[0][0]){%>
+          lat = <%=positionSubs[0][0].lat%>;
+          long = <%=positionSubs[0][0].long%>;
+        <%}%>
+      <%}%>
+      <%if(positions){%>
+        <%if(positions[0]){%>
+          lat = <%=positions[0].lat%>;
+          long = <%=positions[0].long%>;
+        <%}%>
+      <%}%>
+
+      function initMap() {
+        if(lat=="NODATA"||long=="NODATA"){
+          lat=0;
+          long=0;
+        }
+        var LatLong = new google.maps.LatLng(lat, long);
+        var map = new google.maps.Map(document.getElementById('map'), {
+          zoom: 12,
+          center: LatLong,
+          zoomControl: true,
+          scaleControl: true
+        });
+        <%var count=0;%>
+         <% if(positionSubs[0]){%>
+           <% for(var i=0;i<positionSubs.length;i++){ %>
+            <% if(positionSubs[i][0]!="NODATA"){%>
+              var LatLong<%=i%> = new google.maps.LatLng(<%=positionSubs[i][0].lat%>,<%=positionSubs[i][0].long%>);
+              var marker<%=i%> = new google.maps.Marker({
+                position: LatLong<%=i%>,
+              });
+            marker<%=i%>.setMap(map);
+            <%count++;%>
+            <%}%>
+          <%}%>
+        <%}%>
+        <%if(positions){%>
+          <% for(var i=0;i<positions.length;i++){ %>
+            <%if(positions[i]!="NODATA"){%>
+              var LatLong<%=i+count%> = new google.maps.LatLng(<%=positions[i].lat%>,<%=positions[i].long%>);
+              var marker<%=i+count%> = new google.maps.Marker({
+                position: LatLong<%=i+count%>,
+              });
+              marker<%=i+count%>.setMap(map);
+            <%}%>
+          <%}%>
+        <%}%>
+      }
+    //});
+  </script>
+  <script async defer src="https://maps.googleapis.com/maps/api/js?key=<%=APIKeyGMJS%>&callback=initMap"></script>
+</body>
+</html>

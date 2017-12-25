@@ -35,11 +35,11 @@ router.post('/fismo', upload2.any(), controller_mongoDBFile.fismo2);
 router.get('/readMongo', controller_mongoDBFile.readMongo);
 router.get('/readFiles', controller_mongoDBFile.readFiles);
 router.get('/deployments', controller_mongoDBFile.deploymentsReadMongo);
-router.post('/:nameDep/readFileDevices', controller_mongoDBFile.readFileDevofDep);
+//router.post('/:nameDep/readFileDevices', controller_mongoDBFile.readFileDevofDep);
 router.post('/:nameDep/readMongoDevices', controller_mongoDBFile.readMongoDevofDep);//devices 0
-router.post('/:nameDep/readMongoDevices2', controller_mongoDBFile.readMongoDevofDep2);//sensing 1
-router.post('/:nameDep/readMongoCrossOver', controller_mongoDBFile.readMongoCrossOver);
-
+//router.post('/:nameDep/readMongoDevices2', controller_mongoDBFile.readMongoDevofDep2);//sensing 1
+//router.post('/:nameDep/readMongoCrossOver', controller_mongoDBFile.readMongoCrossOver);
+router.post('/:nameDep/saveListDevices',controller_mongoDBFile.saveDevicesList);
 //Controller Mongo y Rest
 router.get('/deploymentsRest', controller_rest.deployments);
 router.post('/:nameDep/devices', controller_rest.DevOfDep);

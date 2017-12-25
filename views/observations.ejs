@@ -1,7 +1,9 @@
 <% include header %>
 </head>
 <body>
-  <h1><%=title %></h1>
+  <% include navbar %>
+  <main role="main" class="container-fluid">
+ 
   <% for(var i=0;i<obs.length;i++){ %>
   		<div>
         <p>Observacion: <%=obs[i]%></p>
@@ -9,7 +11,70 @@
         <p>Valor: <%=measures[i]%></p>
         <p>Unidades: <%=units[i]%></p>
       </div>
-  		
   <%}%>
-  	
-<% include footer %>
+
+  <div class="row">
+    <div class="col-lg-12">
+      <h1><%=title %></h1>
+      <table cellpadding="0" cellspacing="0" border="2" class="table table-striped table-bordered" id="tabla1">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Value</th>
+            <th>Units</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+        <% for(var i=0;i<sys.length;i++){ %>
+        <% for(var j=0;j<subsystems[i].length;j++){ %>
+        <tr>
+          <td><%=i+1 %></td>
+          <td class="type"><%=typeSubs[i][j]%></td>
+          <td class="qk" id="qk<%=i+''+j%>"><%=qkSubs[i][j]%></td>
+          <td class="num" id="num<%=i+''+j%>"><% if(measureSubs[i][j]=="NODATA"){measureSubs[i][j]="--"}%><%=measureSubs[i][j]%></td>
+          <td class="unit" id="unit<%=i+''+j%>"><%=unitSubs[i][j]%></td>
+          <td>
+          <%if(endSubs[i][j]!="NODATA"){%>
+            <form action="/<%=nameDep%>/<%=typeSubs[i][j]%>/endpoint" method="post">
+              <input value="<%=subsystems[i][j]%>" name="devf" type="hidden"/>
+              <input value="<%=sys[i]%>" name="sys" type="hidden"/>
+              <input value="<%=endSubs[i][j]%>" name="endp" type="hidden"/>
+              <input type="hidden" name="dep" value="<%=dep%>">
+              <button class="btn btn-link btn-block" type="submit">Endpoint</button>
+            </form>
+            <hr class="button"> 
+          <%}%>
+            <form action="/<%=nameDep%>/<%=typeSubs[i][j]%>/observations" method="post">
+              <input value="<%=subsystems[i][j]%>" name="devobs" type="hidden"/>
+              <input value="<%=sys[i]%>" name="sys" type="hidden"/>
+              <input readonly name="dateMin" type="hidden"/>
+              <input readonly name="dateMax" type="hidden"/>
+              <input type="hidden" name="dep" value="<%=dep%>">
+              <button class="btn btn-link btn-block" type="submit">Observations</button>
+            </form>
+          </td>
+        </tr>
+        <%}%>
+        <%}%>
+      </tbody>        
+      </table>
+    </div>
+  </div>
+
+
+
+
+  <div class="row">
+    <form action="/<%=nameDep%>/readMongoDevices" method="post" >
+      <input value="<%=ulrDep%>" name="dep" type="hidden"/>
+      <input value="<%=nameDep%>" name="nDep" type="hidden"/>
+      <input value="<%=preUrl%>" name="preUrl" type="hidden"/>
+      <button class="btn btn-dark" type="submit">Volver</button>
+    </form>
+  </div>
+  </main>
+  <% include footer %>
+  <% include scripts %>
+</body>
+</html>

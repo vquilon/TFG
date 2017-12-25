@@ -1,0 +1,22 @@
+<% include header %>
+</head>
+<body>
+<% include loader %>
+<% include navbar %>
+<main role="main" class="container">
+  <div class="bd-callout bd-callout-success">
+		<h2><%=title %></h2>
+	</div>
+  <ul class="list-group">
+		<li class="list-group-item active">
+			<h3 style="margin-bottom: 0px">List Name <strong><%=listName%> </strong><span class="badge badge-dark badge-pill"><%=devices.length%></span></h3>
+		</li>
+  	<%for(var i=0;i<devices.length;i++){%>
+			<li class="list-group-item">Device <strong><%=types[i]%></strong></li>
+		<%}%>
+  </ul>
+</main>
+<% include footer %>
+<% include scripts %>
+</body>
+</html>

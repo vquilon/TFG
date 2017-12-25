@@ -1,7 +1,79 @@
-body {
-  padding: 50px;
-  font: 14px "Lucida Grande", Helvetica, Arial, sans-serif;
+/* Sticky footer styles
+-------------------------------------------------- */
+html {
+  position: relative;
+  min-height: 100%;
 }
+body {
+  /* Margin bottom by footer height */
+  margin-bottom: 60px;
+  color:#004489 !important;
+}
+.footer {
+  position: absolute;
+  bottom: 0;
+  width: 100%;
+  /* Set the fixed height of the footer here */
+  height: 100px;
+  line-height: 100px; /* Vertically center the text there */
+  background-color: #f5f5f5;
+}
+
+
+/* Custom page CSS
+-------------------------------------------------- */
+/* Not required for template or sticky footer method. */
+main.container {
+  padding: 60px 15px 120px;
+}
+
+main.container-fluid {
+  padding: 60px 15px 120px;
+}
+.footer > .container {
+  padding-right: 15px;
+  padding-left: 15px;
+}
+
+code {
+  font-size: 80%;
+}
+
+
+body {
+  padding-top: 20px;
+}
+
+.footer {
+  border-top: 2px solid #d8d8d8;
+}
+
+@media (min-width: 768px) {
+  .navbar-nav {
+    display: -ms-flexbox;
+    display: flex;
+  }
+
+  .navbar-nav .nav-item {
+    -ms-flex: 1 0 auto;
+    flex: 1 0 auto;
+  }
+}
+
+/* Responsive: Portrait tablets and up */
+@media screen and (min-width: 768px) {
+  /* Remove the padding we set earlier */
+  .masthead {
+    padding-right: 0;
+    padding-left: 0;
+  }
+}
+
+nav.bg-dark {
+    background-color: #004489!important;
+}
+
+/*CUSTOM STYLES*/
 
 a {
   color: #00B7FF;
@@ -12,4 +84,182 @@ a {
 }
 .dataTables_filter{
 	float:right;
+}
+.btn-link{
+	padding: 0px !important;
+}
+.selected .btn-link{
+  color:white !important;
+}
+.dt-buttons {
+	width: 100%;
+	padding-bottom: 10px;
+}
+.dataTables_length{
+	float:left;
+}
+
+.dropdown-item:focus, .dropdown-item:hover {
+    color: #292b2c !important;
+    background-color: #f2f2f2 !important;
+}
+.dropdown-item.active, .dropdown-item:active {
+    color: #292b2c !important;
+    background-color: #e1e1e1 !important;
+}
+.no-padding {
+  padding-left:0px !important;
+  padding-right:0px !important;
+}
+.sidebar {
+  padding-left:10px !important;
+  padding-right:10px !important;
+  position:fixed;
+  background-color: #f9f9f9
+}
+.disabled {
+    cursor: not-allowed;
+}
+
+.buttons-excel{
+  color:green !important;
+}
+.buttons-pdf{
+  color:red !important;
+}
+
+table.dataTable tbody>tr.selected, table.dataTable tbody>tr>.selected {
+    background-color: #3375b9 !important;
+}
+table.dataTable tbody>tr.selected hr, table.dataTable tbody>tr>.selected hr{
+    border-color:white !important;
+}
+
+.page-item.active .page-link {
+    background-color: #004489 !important;
+    border-color: #004489 !important;
+}
+.page-link {
+    color: #004489 !important;
+}
+
+.bootstrap-datetimepicker-widget table td.active, .bootstrap-datetimepicker-widget table td.active:hover {
+    background-color: #004489 !important;
+}
+.page-item.active .page-link {
+    color: #fff !important;
+}
+
+.bootstrap-datetimepicker-widget table td.today:before {
+    border-width: 0 0 6px 6px !important; 
+    border-bottom-color: #004489 !important;
+    bottom: 2px !important;
+}
+.bootstrap-datetimepicker-widget table td.active.today:before {
+    border-bottom-color: #fff !important;
+}
+
+.btn-dark {
+    color: #fff;
+    background-color: #004489 !important;
+    border-color: #004489 !important;
+}
+.btn-dark:hover {
+    color: #fff;
+    background-color: #013e7b !important;
+    border-color: #013e7b !important;
+}
+.btn-dark:not([disabled]):not(.disabled).active, .btn-dark:not([disabled]):not(.disabled):active, .show>.btn-dark.dropdown-toggle {
+    color: #fff;
+    background-color: #03386d !important;
+    border-color: #03386d !important;
+    box-shadow: 0 0 0 0.2rem rgba(3, 58, 114,.5) !important;
+}
+
+hr.button{
+  margin-top:1px !important;
+  margin-bottom:1px !important;
+  border-top: 1px solid rgba(0, 68, 137, 0.5) !important;
+}
+#title-list{
+  height:100px;
+  vertical-align: middle;
+}
+#send-list {
+  height: 100px;
+  vertical-align: middle;
+}
+#devices-text {
+  padding-bottom: 10px;
+}
+.card{
+  margin-left:20px;
+  margin-bottom:20px;
+}
+td{
+  vertical-align: middle !important;
+}
+
+.custom-control-input:checked~.custom-control-indicator {
+    background-color: #004489 !important;
+}
+.custom-control-input:disabled~.custom-control-indicator {
+    background-color: #798693 !important;
+}
+
+.btn-group-vertical>.btn, .btn-group>.btn {
+  box-shadow: none !important;
+}
+.date input{
+  border: 1px solid #bdbdbd !important;
+  margin-top:0px;
+}
+.send-list button {
+  margin-top: 60px;
+  height: 40px;
+}
+
+/*Animation Form*/
+.form-group label {
+    -webkit-transition: .2s ease-out;
+    transition: .2s ease-out;
+    color: #757575;
+    position: absolute;
+    top: .8rem;
+    left: 0;
+    font-size: 1rem;
+    cursor: text;
+}
+.form-group label.active {
+    -webkit-transform: translateY(-140%);
+    -ms-transform: translateY(-140%);
+    transform: translateY(-140%);
+    font-size: .8rem;
+}
+.list-group-item.active{
+  background-color: #004489 !important;
+  border-color: #004489 !important;
+}
+.bd-callout {
+    padding: 1.25rem;
+    margin-top: 1.25rem;
+    margin-bottom: 1.25rem;
+    border: 1px solid #eee;
+    border-left-width: .25rem;
+    border-radius: .25rem;
+}
+.bd-callout-success {
+    border-left-color: green;
+    background-color: rgba(0, 128, 0, 0.2);
+}
+.bd-callout-success h2{
+    color: green;
+    margin: 0;
+}
+.card-title{
+  margin: 0px !important;
+}
+.card-header{
+  background-color: #004489 !important;
+  color: white !important;
 }

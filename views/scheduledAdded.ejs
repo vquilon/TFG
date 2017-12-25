@@ -2,6 +2,8 @@
 </head>
 <body>
 <% include loader %>
+<% include navbar %>
+<main role="main" class="container">
   <h1><%=title %></h1>
 	<p>Tipo de dispositivo: <strong><%=tDev%></strong></p> 
 	<p>Endpoint: <strong><%=endp%></strong></p>
@@ -9,5 +11,8 @@
     <p>Valor máximo incluido: <strong><%=max%></strong></p>
     <p>Accion: <strong><%=action%></strong>
 	<p>Correo: <strong><%=email%></strong></p>
-
+</main>
 <% include footer %>
+<% include scripts %>
+</body>
+</html>

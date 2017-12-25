@@ -2,6 +2,8 @@
 </head>
 <body>
 <% include loader %>
+<% include navbar %>
+<main role="main" class="container">
   <h1><%=title %></h1>
   	<div>
 	  	<div style="width: 50%; float:left">
@@ -17,16 +19,44 @@
 		<%}%>
 	</div>
 	<%if(endp!="NODATA"){%>
-	    <h3>Notificar cuando pasa de ciertos valores</h3>
+	    <h3>Do you want to know when it reaches certain values?</h3>
 	    <form action="/<%=nameDep%>/<%=tDev%>/scheduled" method="post">
-	    	<p>Valor mínimo incluido<input name="min" type="number"/></p>
-	    	<p>Valor máximo incluido<input name="max" type="number"/></p>
-	    	</span>Acción<input type="text" name="action" value="Enviar Correo" readonly/></p>
-	    	<p>Correo<input name="email" type="email"/></p>
-			<input value="<%=endp%>" name="endp" type="hidden"/>
-	        <button type="submit">Programar Alerta</button>
+	    	
+	    	<h4>Condition</h4>
+	    	<small id="conditionHelp" class="form-text text-muted">If you leave the fields below empty we will send you the last measurement</small>
+	    	<div class="form-row">
+			    <div class="form-group col">
+			      <label for="min">Min. Value</label>
+			      <input type="number" class="form-control" id="min" name="min" placeholder="Minimun" step="0.0001">
+			    </div>
+			    <div class="form-group col">
+			      <label for="max">Max. Value</label>
+			      <input type="number" class="form-control" id="max" name="max" placeholder="Maximum" step="0.0001">
+			    </div>
+			  </div>
+
+			  <h4>Action</h4>	
+				<div class="form-row">
+				  <div class="form-group col">
+				    <label for="email" class="custom-control custom-checkbox">
+				      <input checked disabled type="checkbox" class="custom-control-input" name="action">
+				      <span class="custom-control-indicator"></span>
+				      <span class="custom-control-description">Send Email</span>
+				    </label>
+				    <input type="email" class="form-control" id="email" placeholder="name@example.com" name="email">
+			  	</div>
+
+			  </div>
+				
+				<input value="<%=endp%>" name="endp" type="hidden"/>
+
+	      <button type="submit" class="btn btn-dark">Schedule Notification</button>
+
 	    </form>
 	<%}%>
+</main>
+	<% include footer %>
+	<% include scripts%>
 	<%if(lat!="" && long!=""){%>
   	<script>  
 	    function initMap() {
@@ -45,4 +75,7 @@
 	</script>
 	<script async defer src="https://maps.googleapis.com/maps/api/js?key=<%=APIKeyGMJS%>&callback=initMap"></script>
 	<%}%>
-<% include footer %>
+
+
+</body>
+</html>
