@@ -425,7 +425,7 @@ exports.ObsOfDev = function(req, res, next){
                       var t = items[i].t.substring(0,items[i].t.lastIndexOf("^^"));
 
                       var d = new Date(t);
-                      var lang = ["es"]; //using an array because of quirk in Chrome
+                      var lang = ["en"]; //using an array because of quirk in Chrome
                       var options = {  
                         weekday: "long", 
                         year: "numeric", 
