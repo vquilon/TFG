@@ -27,9 +27,9 @@ var controller_rest = require('../controllers/controller_rest');
 var controller_wf = require('../controllers/controller_wf');
 
 /* GET home page. */
-router.get('/', controller.home);
+router.get('/', controller_mongoDBFile.home);
 
-//Controller fismo
+//Controller Mongo
 router.post('/', upload.any(), controller_mongoDBFile.fismo);
 router.post('/fismo', upload2.any(), controller_mongoDBFile.fismo2);
 router.get('/readMongo', controller_mongoDBFile.readMongo);
@@ -40,6 +40,8 @@ router.post('/:nameDep/readMongoDevices', controller_mongoDBFile.readMongoDevofD
 //router.post('/:nameDep/readMongoDevices2', controller_mongoDBFile.readMongoDevofDep2);//sensing 1
 //router.post('/:nameDep/readMongoCrossOver', controller_mongoDBFile.readMongoCrossOver);
 router.post('/:nameDep/saveListDevices',controller_mongoDBFile.saveDevicesList);
+router.post('/list/:listName',controller_mongoDBFile.listsOfDevices);
+
 //Controller Mongo y Rest
 router.get('/deploymentsRest', controller_rest.deployments);
 router.post('/:nameDep/devices', controller_rest.DevOfDep);

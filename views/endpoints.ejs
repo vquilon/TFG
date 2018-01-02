@@ -3,60 +3,104 @@
 <body>
 <% include loader %>
 <% include navbar %>
-<main role="main" class="container">
-  <h1><%=title %></h1>
-  	<div>
-	  	<div style="width: 50%; float:left">
-	  		<h3>Tipo de medida: <strong><%=qk%></strong></h3>
-	    	<p><span>Valor: <strong><%=measure%></strong> </span><span><%=unit%></span></p> 
-	    	<p>Medido el: <strong><%=date%></strong></p>
-	    	<p>Latitud: <strong><%=lat%></strong></p>
-	    	<p>Longitud: <strong><%=long%></strong></p>
-		</div>
-		
+<main role="main" class="container-fluid">
+  <h1 class="text-center">Device <%=tDev%></h1>
+  <h3 class="text-center"><strong><%=qk%></strong></h3>
+  <hr>
+  <div class="row">
 		<%if(lat!="" && long!=""){%>
-		<div style="height: 400px;width: 50%;" id="map"></div>
+			<div class="col">
+				<h4 class="text-center">Map</h3>
+				<div style="width: 100%;" id="map"></div>
+			</div>
 		<%}%>
+
+		<div class="col">
+  		<h4 class="text-center">Data</h3>
+	    <div class="container data">
+	    <p><span class="text-left">Value </span><strong><%=measure%> <%=unit%></strong></p> 
+	    <p><span class="text-left">Measure time </span><strong><%=date%></strong></p>
+	    <p><span class="text-left">Latitude </span><strong><%=lat%></strong></p>
+	    <p><span class="text-left">Longitude </span><strong><%=long%></strong></p>
+	    <p><span class="text-left">Device Type </span><strong><%=tDev%></strong></p>
+	    <p><span class="text-left">Quantity Kind </span><strong><%=qk%></strong></p>
+	  	</div>
+		</div>
 	</div>
 	<%if(endp!="NODATA"){%>
-	    <h3>Do you want to know when it reaches certain values?</h3>
-	    <form action="/<%=nameDep%>/<%=tDev%>/scheduled" method="post">
-	    	
-	    	<h4>Condition</h4>
-	    	<small id="conditionHelp" class="form-text text-muted">If you leave the fields below empty we will send you the last measurement</small>
-	    	<div class="form-row">
-			    <div class="form-group col">
-			      <label for="min">Min. Value</label>
-			      <input type="number" class="form-control" id="min" name="min" placeholder="Minimun" step="0.0001">
-			    </div>
-			    <div class="form-group col">
-			      <label for="max">Max. Value</label>
-			      <input type="number" class="form-control" id="max" name="max" placeholder="Maximum" step="0.0001">
-			    </div>
-			  </div>
+	<hr>
+	<div class="row">
+		<div class="col-lg-12">
+	    <h3 class="text-center">Do you want to know when it reaches certain values?</h3>
+	    <h5 id="conditionHelp" class="form-text text-muted text-center">If you leave the fields below empty we will send you the last measurement</h5>
+      <form action="/<%=nameDep%>/<%=tDev%>/scheduled" method="post">   
+        <h4>Condition</h4>
+        <div class="form-row">
+          <div class="form-group col">
+            <label for="min" class="form-label">Min Value</label>
+            <input type="number" class="form-control" id="min" name="min" step="0.0001">
+          </div>
+          <div class="form-group col">
+            <label for="max" class="form-label">Max Value</label>
+            <input type="number" class="form-control" id="max" name="max" step="0.0001">
+          </div>
+        </div>
 
-			  <h4>Action</h4>	
-				<div class="form-row">
-				  <div class="form-group col">
-				    <label for="email" class="custom-control custom-checkbox">
-				      <input checked disabled type="checkbox" class="custom-control-input" name="action">
-				      <span class="custom-control-indicator"></span>
-				      <span class="custom-control-description">Send Email</span>
-				    </label>
-				    <input type="email" class="form-control" id="email" placeholder="name@example.com" name="email">
-			  	</div>
-
-			  </div>
+			  <h4>Action</h4> 
+        <div class="form-row">
+          <div class="form-group col">
+            <label class="custom-control custom-checkbox disabled">
+              <input checked disabled type="checkbox" class="custom-control-input" name="action">
+              <span class="custom-control-indicator"></span>
+              <span class="custom-control-description">Send Email</span>
+            </label>
+          </div>
+          <div class="form-group col">
+            <label for="email" class="form-label">Email</label>
+            <input type="email" class="form-control" id="email" name="email">
+          </div>
+        </div>
 				
 				<input value="<%=endp%>" name="endp" type="hidden"/>
 
-	      <button type="submit" class="btn btn-dark">Schedule Notification</button>
-
+	      <button style="float:right;" type="submit" class="btn btn-dark">Schedule Notification</button>
 	    </form>
+		</div>
+	</div>
 	<%}%>
+	<hr>
+
+   <div class="row">
+   	<div class="col">
+      <form action="/<%=nameDep%>/readMongoDevices" method="post">
+        <input value="<%=ulrDep%>" name="dep" type="hidden"/>
+        <input value="<%=nameDep%>" name="nDep" type="hidden"/>
+        <input value="<%=preUrl%>" name="preUrl" type="hidden"/>
+        <button class="btn btn-dark" type="submit">Back</button>
+      </form>
+    </div>
+  </div>
 </main>
 	<% include footer %>
 	<% include scripts%>
+	<script>
+    $(document).ready(function(){
+      $(".form-group label").removeClass("active");
+      $(".form-group .form-control").focusin(function(e){
+        $(e.this).parent().find("label.form-label").addClass("active");
+      });
+      $(".form-group .form-control").focusout(function(e){
+      	if($(e.target).value!=""){
+      		console.log("valor");
+      	}
+      	else{
+      		$(e.target).removeClass("active");
+      	}
+        
+      });
+
+    });
+  </script>
 	<%if(lat!="" && long!=""){%>
   	<script>  
 	    function initMap() {
@@ -74,6 +118,11 @@
 	      }
 	</script>
 	<script async defer src="https://maps.googleapis.com/maps/api/js?key=<%=APIKeyGMJS%>&callback=initMap"></script>
+	<script type="text/javascript">
+		$(document).ready(function(){
+			$("#map").height($(".data").height());
+		});
+	</script>
 	<%}%>
 
 

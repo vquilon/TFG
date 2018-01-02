@@ -1,7 +1,4 @@
 <% include header %>
-<script>
-  console.log("Empieza"+Date.now());
-</script>
 </head>
 <body>
 <% include loader %>
@@ -9,46 +6,78 @@
 <main role="main" class="container-fluid">
   <h1 class="text-center"><%=title %></h1>
   <hr>
-  <div class="row">
-  <% for(var i=0;i<deps.length;i++){ %>
-    <div class="card" style="width: 20rem;">
-      <div class="card-header"><h3 class="card-title"><%=nameDeps[i]%></h3></div>
-      <div class="card-body">
-        <%if(deps[i]=="a1yp9GcKEPw37Bx5rslgRI4QLSNCwEwBatCIOe_W0dHZCmzj2WmkExz3qoNuvWg1pueAXn1Li0JrNjvBiQwV3Q=="){%>
-        <p class="card-text">Large‐scale Smart City deployment.</p>
-        <%}if(deps[i]== "s87UnnzFTAStKTL_wErGRTxPObzVT6zoAXUrS1PvuvAMtwHiDSKscfLBaeU44dnq6btRFQpVlI05VX6hkQgjuA=="){%>
-        <p class="card-text">Large-scale crowd-sensing testbed.</p>
-        <%}if(deps[i]== "uyPgySZB-ikYt9HCYa37uQc-1fAOcyLn7RW64vsk8BsKIgc_n4qRPHXCCFyCdMKnSQb49_jfLH89D07A7H6zLS90qCN8a7byym6C2eS3LOA="){%>
-        <p class="card-text">Smart Environment, based on an indoor sensor nodes deployment.</p>
-        <%}if(deps[i]== "hRWFx405M_0veyV1H7GQvtvo8GHAZ-9ynEJZL7mZ10Fl8PaaHf_MhN_qQdAJ6zDgKJGXIHqhBMvWOzgMvIG5DO69NnP4vrilxWgYfn6mhCI="){%>
-        <p class="card-text">Indoor and outdoor building Smart Environment deployment.</p>
-        <%}if(deps[i]== "bJmHbf3m2A8E6ftmOEGtcn2iMZulg14DfU6ZKwVJfks78HlfnVtZ_AipIZfW2GjN6ItVMJoAzd7o664ArbwSr8rd2GfiQ16kRDDnTJpc_Z0="){%>
-        <p class="card-text">Live data Centre testbed for monitoring DC operations.</p>
-        <%}if(deps[i]== "P5v07leDmwHCdZ-7lqbFBNVyAxmXuV0Vz_GwUeYVehmhi5mjD6VLs1q7dCwTrr0MQEbRdbFa7Nx2hMHS6xlO7w=="){%>
-        <p class="card-text">Heterogeneous LoRa and Wireless Sensor Network.</p>
-        <%}if(deps[i]== "gg3MVCEADVr4w8Ledz619Ytph-O6-u2AtehqmicTfBdKPjiyA3YkDNkhFwahBlklGuAD-z854KsnPoBt3Fg3Kg=="){%>
-        <p class="card-text">Sea water quality and air polution monitoring testbed, as well as for detailed power consumption (WiFi, LTE, XBee, LoRa).</p>
-        <%}if(deps[i]== "A8nfIgx5d39uM-ffd2NU_IQP8hRN8aH9ZACN_Wld9mgwLXIS7graIsWTvbNyicQEQ478_pxceFUazwFXB3Yc7Q=="){%>
-        <p class="card-text">Outdoor testbed for Smart Agriculture.</p>
-        <%}if(nameDeps[i]=="UNKNOWN"){%>
-        <p class="card-text">This TestBed has different Devices.</p>
-        <%}%>
-        <form action="/<%=nameDeps[i]%>/readMongoDevices" method="post" >
-          <input value="<%=deps[i]%>" name="dep" type="hidden"/>
-          <input value="<%=nameDeps[i]%>" name="nDep" type="hidden"/>
-          <input value="<%=preUrlDeps[i]%>" name="preUrl" type="hidden"/>
-          <button class="btn btn-dark" type="submit">VER DEVICES</button>
-        </form>
+  <div class="testbeds">
+    <div class="row">
+    <% for(var i=0;i<deps.length;i++){ %>
+      <div class="text-center card" style="width: 20rem;">
+        <div class="card-header"><h3 class="text-center card-title"><%=nameDeps[i]%></h3></div>
+        <div class="card-body">
+          <%if(deps[i]=="a1yp9GcKEPw37Bx5rslgRI4QLSNCwEwBatCIOe_W0dHZCmzj2WmkExz3qoNuvWg1pueAXn1Li0JrNjvBiQwV3Q=="){%>
+          <p class="card-text">Large‐scale Smart City deployment.</p>
+          <%}if(deps[i]== "s87UnnzFTAStKTL_wErGRTxPObzVT6zoAXUrS1PvuvAMtwHiDSKscfLBaeU44dnq6btRFQpVlI05VX6hkQgjuA=="){%>
+          <p class="card-text">Large-scale crowd-sensing testbed.</p>
+          <%}if(deps[i]== "uyPgySZB-ikYt9HCYa37uQc-1fAOcyLn7RW64vsk8BsKIgc_n4qRPHXCCFyCdMKnSQb49_jfLH89D07A7H6zLS90qCN8a7byym6C2eS3LOA="){%>
+          <p class="card-text">Smart Environment, based on an indoor sensor nodes deployment.</p>
+          <%}if(deps[i]== "hRWFx405M_0veyV1H7GQvtvo8GHAZ-9ynEJZL7mZ10Fl8PaaHf_MhN_qQdAJ6zDgKJGXIHqhBMvWOzgMvIG5DO69NnP4vrilxWgYfn6mhCI="){%>
+          <p class="card-text">Indoor and outdoor building Smart Environment deployment.</p>
+          <%}if(deps[i]== "bJmHbf3m2A8E6ftmOEGtcn2iMZulg14DfU6ZKwVJfks78HlfnVtZ_AipIZfW2GjN6ItVMJoAzd7o664ArbwSr8rd2GfiQ16kRDDnTJpc_Z0="){%>
+          <p class="card-text">Live data Centre testbed for monitoring DC operations.</p>
+          <%}if(deps[i]== "P5v07leDmwHCdZ-7lqbFBNVyAxmXuV0Vz_GwUeYVehmhi5mjD6VLs1q7dCwTrr0MQEbRdbFa7Nx2hMHS6xlO7w=="){%>
+          <p class="card-text">Heterogeneous LoRa and Wireless Sensor Network.</p>
+          <%}if(deps[i]== "gg3MVCEADVr4w8Ledz619Ytph-O6-u2AtehqmicTfBdKPjiyA3YkDNkhFwahBlklGuAD-z854KsnPoBt3Fg3Kg=="){%>
+          <p class="card-text">Sea water quality and air polution monitoring testbed, as well as for detailed power consumption (WiFi, LTE, XBee, LoRa).</p>
+          <%}if(deps[i]== "A8nfIgx5d39uM-ffd2NU_IQP8hRN8aH9ZACN_Wld9mgwLXIS7graIsWTvbNyicQEQ478_pxceFUazwFXB3Yc7Q=="){%>
+          <p class="card-text">Outdoor testbed for Smart Agriculture.</p>
+          <%}if(nameDeps[i]=="UNKNOWN"){%>
+          <p class="card-text">This TestBed has different Devices.</p>
+          <%}%>
+          <form class="text-center" action="/<%=nameDeps[i]%>/readMongoDevices" method="post" >
+            <input value="<%=deps[i]%>" name="dep" type="hidden"/>
+            <input value="<%=nameDeps[i]%>" name="nDep" type="hidden"/>
+            <input value="<%=preUrlDeps[i]%>" name="preUrl" type="hidden"/>
+            <button class="btn btn-dark" type="submit">DEVICES</button>
+          </form>
+        </div>
       </div>
+    <%}%>
     </div>
-  <%}%>
   </div>
-  </main>
+</main>
 <% include footer %>
 <% include scripts %>
 <script>
   $(document).ready(function(){
-    console.log("Ha cargado"+Date.now());
+    var num = <%=deps.length%>;
+    var tot = parseInt(($(".testbeds").width()+(($(".testbeds .row").width()-$(".testbeds").width())/2))/$(".card").outerWidth(true));
+    var realNum=0;
+    if(num>tot){
+      realNum = tot;
+    }
+    else{
+      realNum = num;
+    }
+    /*console.log("Total listas "+realNum);
+    console.log("Ancho lista "+$(".testbeds").width());
+    console.log("Tamaño card "+$(".card").outerWidth(true));
+    console.log("Margen "+(($(".testbeds .row").width()-$(".testbeds").width())/2));*/
+    $(".testbeds").css("padding-left",($(".testbeds").width()-((realNum*$(".card").outerWidth(true))-(($(".testbeds .row").width()-$(".testbeds").width())/2)))/2+"px");
+  });
+  $(window).resize(function(){
+    $(".testbeds").css("padding-left","0px");
+    var num = <%=deps.length%>;
+    var tot = parseInt(($(".testbeds").width()+(($(".testbeds .row").width()-$(".testbeds").width())/2))/$(".card").outerWidth(true));
+    var realNum=0;
+    if(num>tot){
+      realNum = tot;
+    }
+    else{
+      realNum = num;
+    }
+    /*console.log("Total listas "+realNum);
+    console.log("Ancho testbeds "+$(".testbeds").width());
+    console.log("Tamaño card "+$(".card").outerWidth(true));
+    console.log("Margen "+(($(".testbeds .row").width()-$(".testbeds").width())/2));*/
+    $(".testbeds").css("padding-left",($(".testbeds").width()-((realNum*$(".card").outerWidth(true))-(($(".testbeds .row").width()-$(".testbeds").width())/2)))/2+"px");
   });
 </script>
 </body>

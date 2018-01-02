@@ -25,10 +25,11 @@ body {
 /* Not required for template or sticky footer method. */
 main.container {
   padding: 60px 15px 120px;
+  margin-top: 20px;
 }
 
 main.container-fluid {
-  padding: 60px 15px 120px;
+  padding: 80px 15px 120px;
 }
 .footer > .container {
   padding-right: 15px;
@@ -37,11 +38,6 @@ main.container-fluid {
 
 code {
   font-size: 80%;
-}
-
-
-body {
-  padding-top: 20px;
 }
 
 .footer {
@@ -193,7 +189,7 @@ hr.button{
   padding-bottom: 10px;
 }
 .card{
-  margin-left:20px;
+  margin-left:15px;
   margin-bottom:20px;
 }
 td{
@@ -220,21 +216,42 @@ td{
 }
 
 /*Animation Form*/
-.form-group label {
+small{
+  margin-bottom:10px;
+}
+label.custom-checkbox {
+  cursor: pointer !important;
+}
+label.custom-checkbox.disabled {
+  cursor: not-allowed !important;
+}
+
+.form-group {
+  margin-top: 15px !important;
+}
+.form-group label.form-label {
     -webkit-transition: .2s ease-out;
     transition: .2s ease-out;
     color: #757575;
     position: absolute;
     top: .8rem;
-    left: 0;
+    left: 10px;
     font-size: 1rem;
     cursor: text;
 }
-.form-group label.active {
+
+.form-group label.active{
     -webkit-transform: translateY(-140%);
     -ms-transform: translateY(-140%);
     transform: translateY(-140%);
     font-size: .8rem;
+}
+.form-control {
+  padding-left: 0px !important;
+  padding-right: 0px !important;
+}
+.input-group.date .form-control {
+  padding: .375rem .75rem !important;
 }
 .list-group-item.active{
   background-color: #004489 !important;
@@ -262,4 +279,7 @@ td{
 .card-header{
   background-color: #004489 !important;
   color: white !important;
+}
+.data {
+  padding-top: 10px;
 }

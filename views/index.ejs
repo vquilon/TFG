@@ -1,12 +1,73 @@
-<!DOCTYPE html>
-<html>
-  <head>
-    <title><%= title %></title>
-    <link rel='stylesheet' href='/stylesheets/style.css' />
-    <link rel="icon" href="http://moodle.fiesta-iot.eu/pluginfile.php/1/theme_more/smalllogo/1495813859/FIESTA-IoT-Logo-Small.jpg">
-  </head>
-  <body>
-    <h1><%= title %></h1>
-    <p>Welcome to <%= title %></p>
-  </body>
+<% include header %>
+</head>
+<body>
+<% include loader %>
+<% include navbar %>
+<main role="main" class="container-fluid">
+  <div class="jumbotron">
+    <h1 class="text-center display-3">Welcome</h1>
+    <p class="text-center lead">On this website you can find all the IoT devices that the Fiesta-Iot platform has, and you can also create lists of these devices and program email notifications for certain values ​​of their measurements.</p>
+    <hr class="my-4">
+    <p class="text-center">Come on, start by observing the different testbed and its devices that the Fiesta-Iot platform has.</p>
+    <p class="text-center lead">
+      <a class="btn btn-primary btn-lg" href="/deployments" role="button">Deployments</a>
+    </p>
+  </div>
+  <hr>
+	<h2 class="text-center">Lists</h2>
+  <div class="list">
+  <div class="row">
+	  <%for(var i=0;i<listName.length;i++){%>
+	  <div class="text-center card" style="width: 20rem;">
+	    <div class="card-header"><h4 class="text-center card-title"><%=listName[i]%></h4></div>
+		  <div class="card-body">
+			  <form action="/list/<%=listName[i]%>" method="post">
+					<input type="hidden" name="listName" value="<%=listName[i]%>">
+					<input type="hidden" name="listId" value="<%=id[i]%>">
+			    <button class="btn btn-link btn-block" type="submit">See List</button>
+			  </form>
+		  </div>
+		 </div>
+	  <%}%>
+	</div>
+  </div>
+</main>
+<% include footer %>
+<% include scripts %>
+<script>
+	$(document).ready(function(){
+		var num = <%=listName.length%>;
+		var tot = parseInt(($(".list").width()+(($(".list .row").width()-$(".list").width())/2))/$(".card").outerWidth(true));
+		var realNum=0;
+		if(num>tot){
+			realNum = tot;
+		}
+		else{
+			realNum = num;
+		}
+		/*console.log("Total listas "+realNum);
+		console.log("Ancho lista "+$("body").width());
+		console.log("Tamaño card "+$(".card").outerWidth(true));
+		console.log("Margen "+(($(".list .row").width()-$(".list").width())/2));*/
+		$(".list").css("padding-left",($(".list").width()-((realNum*$(".card").outerWidth(true))-(($(".list .row").width()-$(".list").width())/2)))/2+"px");
+	});
+	$(window).resize(function(){
+		$(".list").css("padding-left","0px");
+		var num = <%=listName.length%>;
+		var tot = parseInt(($(".list").width()+(($(".list .row").width()-$(".list").width())/2))/$(".card").outerWidth(true));
+		var realNum=0;
+		if(num>tot){
+			realNum = tot;
+		}
+		else{
+			realNum = num;
+		}
+		/*console.log("Total listas "+realNum);
+		console.log("Ancho lista "+$("body").width());
+		console.log("Tamaño card "+$(".card").outerWidth(true));
+		console.log("Margen "+(($(".list .row").width()-$(".list").width())/2));*/
+		$(".list").css("padding-left",($(".list").width()-((realNum*$(".card").outerWidth(true))-(($(".list .row").width()-$(".list").width())/2)))/2+"px");
+	});
+</script>
+</body>
 </html>

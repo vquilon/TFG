@@ -308,8 +308,10 @@ exports.ObsOfDev = function(req, res, next){
   var token = '';
   var dep = req.body.dep;
   var nameDep = req.params.nameDep;
-  var ulrDep = dep.substring(dep.lastIndexOf('/') + 1);
-  var preUrl = dep.substring(0,dep.lastIndexOf('/')+1);
+  if(dep){
+    var ulrDep = dep.substring(dep.lastIndexOf('/') + 1);
+    var preUrl = dep.substring(0,dep.lastIndexOf('/')+1);
+  }
   console.log("tDev "+tDev);
   console.log("dMin "+dMin);
   console.log("dMax "+dMax);
@@ -329,20 +331,26 @@ exports.ObsOfDev = function(req, res, next){
         token = JSON.parse(body).tokenId;
         //Obtener todas las observaciones que coincidan con un device
         var postData =
-          "PREFIX ssn: <http://purl.oclc.org/NET/ssnx/ssn#>"+ 
+          "Prefix ssn: <http://purl.oclc.org/NET/ssnx/ssn#>"+
+          "Prefix iotlite: <http://purl.oclc.org/NET/UNIS/fiware/iot-lite#>"+ 
+          "Prefix dul: <http://www.loa.istc.cnr.it/ontologies/DUL.owl#>"+ 
           "PREFIX rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#>"+
-          "PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>"+
-          "PREFIX iot-lite: <http://purl.oclc.org/NET/UNIS/fiware/iot-lite#>"+
-          "PREFIX time: <http://www.w3.org/2006/time#>"+
+          "Prefix geo: <http://www.w3.org/2003/01/geo/wgs84_pos#>"+
+          "Prefix time: <http://www.w3.org/2006/time#>"+
+          "Prefix m3-lite: <http://purl.org/iot/vocab/m3-lite#>"+
           "Prefix xsd: <http://www.w3.org/2001/XMLSchema#>"+
-          "PREFIX dul: <http://www.loa.istc.cnr.it/ontologies/DUL.owl#>"+
-          "SELECT ?obs ?s ?sys ?t ?num ?unit "+
+          "Prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>"+
+          "Prefix iot-lite: <http://purl.oclc.org/NET/UNIS/fiware/iot-lite#>"+
+          "SELECT ?obs ?s ?sys ?t ?num ?lat ?long ?unit "+
           "WHERE {"+
             "?obs a ssn:Observation."+
             "?obs ssn:observedBy ?s ."+
-            "VALUES ?s {"+
-              "<"+dev+">"+
+            "VALUES ?s { "+
+              "<"+dev+"> "+
             "} ."+
+            "?obs geo:location ?point ."+  
+            "?point geo:lat ?lat ."+
+            "?point geo:long ?long ."+
             "?obs ssn:observationSamplingTime ?time ."+
             "?time time:inXSDDateTime ?t .";
             if(dMin!=""){
@@ -361,7 +369,7 @@ exports.ObsOfDev = function(req, res, next){
             //"?serv iot-lite:endpoint ?endp ."+  
           "}ORDER BY ?t";
           console.log(postData);
-          console.log("URL "+dev);
+          //console.log("URL "+dev);
         var options = {
           host: 'platform.fiesta-iot.eu',
           path: '/iot-registry/api/queries/execute/global',
@@ -377,6 +385,7 @@ exports.ObsOfDev = function(req, res, next){
         var timeObs = [];//fecha de las observaciones
         var measures = [];//medidas de las observaciones
         var units = [];//unidades de las observaciones
+        var pos={"lat":"","long":""};
         var request = https.request(options, function(response) {
           var body="";
           console.log('STATUS /observations: ' + response.statusCode);
@@ -385,9 +394,10 @@ exports.ObsOfDev = function(req, res, next){
             console.log("UNAUTORIZADO");
           }
           else{
+            //console.log(response);
             console.log('HEADERS /observations: ' + JSON.stringify(response.headers));
             response.on('data', function(chunk) {
-              console.log("CHUNK "+chunk);
+              //console.log("CHUNK "+chunk);
               //Capturar esto para ver si hay error y transmitir a la pagina un error en el servidor y guardar logs
               body+=chunk;
             }).on('end', function() {
@@ -397,13 +407,17 @@ exports.ObsOfDev = function(req, res, next){
                 //Extraer todas las observaciones que me sirven
                 if(items.length==0){
                   //No hay observaciones de este sensor
-                  console.log("VACIOOOOOO");
+                  console.log("NO HAY OBSERVACIONES");
                 }
                 else{
-                  console.log("LLEEEENOO");
+                  console.log("HAY OBSERVACIONES");
                   var i = 0;
                   for(i;i<items.length;i++){
                     if(items[i].obs!=undefined){
+                      if(items[i].lat&&items[i].long){
+                        pos.lat=Number(items[i].lat.substring(0,items[i].lat.lastIndexOf("^")-1));
+                        pos.long=Number(items[i].long.substring(0,items[i].long.lastIndexOf("^")-1));
+                      }
                       //La Z es UTC el .356 solo son los milisegundos....
                       //t form : 2017-03-23T07:08:07.356Z
                       //num form : 10^^http://www.w3.org/2001/XMLSchema#double
@@ -436,19 +450,21 @@ exports.ObsOfDev = function(req, res, next){
 
                 res.render('observations', {
                   title: 'Observations of Device '+tDev,
+                  tDev: tDev,
                   obs: obs, 
                   timeObs: timeObs,
                   measures: measures,
                   units: units,
                   preUrl: preUrl,
                   ulrDep: ulrDep,
-                  nameDep: nameDep
+                  nameDep: nameDep,
+                  dev: dev,
+                  APIKeyGMJS: APIKeyGMJS,
+                  pos: pos
                 });
               }
               else{
-                var backURL=req.header('Referer') || '/';
-                // do your thang
-                res.redirect(backURL);
+                
               }
             })
           }
@@ -473,7 +489,12 @@ exports.EndpOfDev = function(req, res, next){
   var dev = req.body.devf;//url full
   var endp = req.body.endp;
   var qk = req.body.qk;
+  var dep = req.body.dep;
   var unit = req.body.unit;
+  if(dep){
+    var ulrDep = dep.substring(dep.lastIndexOf('/') + 1);
+    var preUrl = dep.substring(0,dep.lastIndexOf('/')+1);
+  }
   //Variables a presentar finalmente
   var date="";
   var lat="";
@@ -571,6 +592,8 @@ exports.EndpOfDev = function(req, res, next){
                 qk: qk,
                 unit: unit,
                 nameDep: nameDep,
+                preUrl: preUrl,
+                ulrDep: ulrDep,
                 tDev: tDev,
                 dev: dev,
                 endp: endp,

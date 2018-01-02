@@ -13,7 +13,7 @@
     <hr>
     <div class="row">
       <div class="col-lg-4">
-      <h5 style="margin: 0px !important" class="text-center">Select Dates to search observations</h5>
+      <h5 style="margin: 5px 0 0 0 !important" class="text-center">Select Dates to search observations</h5>
       </div>
       <div class="col-lg-4">
         <div class="input-group date" id="datetimepicker1">
@@ -45,7 +45,7 @@
               <th>Quantity Kind</th>
               <th>Last Value</th>
               <th>Units</th>
-              <th>Search</th>
+              <th>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -101,7 +101,7 @@
               <th>Quantity Kind</th>
               <th>Last Value</th>
               <th>Units</th>
-              <th>Search</th>
+              <th>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -258,6 +258,7 @@
                     if($("#title-list").find("input[name='title']").length==0){
                       $("#title-list").append("<input required type='text' name='title' placeholder='List Name'/>")
                       $("#devices-selected").append("<div id='send-list' class='text-right'><button class='btn btn-success' type='submit'>Create List</button></div>");
+                      $("#devices-selected").append("<input type='hidden' name='dep' value='<%=dep%>'>");
                     }
                     $("#devices-text").append("<div class='row container-fluid'><div class='col'>System "+e[0]+"</div><div class='col'>"+e[1]+"</div></div>");
                     $("#devices-selected").append("<input type='hidden' name='devices' value='"+dev+"'>"+"<input type='hidden' name='types' value='"+e[1]+"'>");  
@@ -342,13 +343,15 @@
       var long="NODATA";
       //var pos ="NODATA";
       <%if(positionSubs[0]){%>
-        <%if(positionSubs[0][0]){%>
+      <%if(positionSubs[0].length!=0){%>
+        <%if(positionSubs[0][0]!="NODATA"){%>
           lat = <%=positionSubs[0][0].lat%>;
           long = <%=positionSubs[0][0].long%>;
         <%}%>
       <%}%>
-      <%if(positions){%>
-        <%if(positions[0]){%>
+      <%}%>
+      <%if(positions.length!=0){%>
+        <%if(positions[0]!="NODATA"){%>
           lat = <%=positions[0].lat%>;
           long = <%=positions[0].long%>;
         <%}%>
