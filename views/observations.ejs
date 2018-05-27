@@ -31,7 +31,9 @@
       </div>
       <div class="col">
         <h4 class="text-center">Map</h3>
-        <div style="margin-top: 25%; height: 50%; width: 100%;" id="map"></div>
+        <div class="container-fluid">
+          <div style="margin-top: 25%; height: 50%; width: 100%;" id="map"></div>
+        </div>
       </div>
     </div>
 
@@ -157,7 +159,9 @@
     <script async defer src="https://maps.googleapis.com/maps/api/js?key=<%=APIKeyGMJS%>&callback=initMap"></script>
     <script type="text/javascript">
     $(document).ready(function(){
-      $("#map").height($(".data").height());
+      $("#map").outerHeight($(".data").outerHeight());
+      var mh4 = $("#map").parent().parent().find("h4").css("margin-bottom");
+      $("#map").css("margin-top",$(".dataTables_length").outerHeight()+Number(mh4.substring(0,mh4.length-2))+"px");
     });
   </script>
   <%}%>

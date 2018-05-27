@@ -319,6 +319,20 @@ exports.ObsOfDev = function(req, res, next){
     console.log('STATUS /token: ' + response.statusCode);
     if(response.statusCode === 401){
       console.info("UNAUTORIZADO");
+      res.render('observations', {
+                  title: 'Observations of Device '+tDev,
+                  tDev: tDev,
+                  obs: [],//obs, 
+                  timeObs: timeObs,
+                  measures: [],//measures,
+                  units: [],//units,
+                  preUrl: preUrl,
+                  ulrDep: ulrDep,
+                  nameDep: nameDep,
+                  dev: dev,
+                  APIKeyGMJS: APIKeyGMJS,
+                  pos: {"lat":"","long":""}//pos
+                });
     }
     else{
       console.log('HEADERS /token: ' + JSON.stringify(response.headers));
@@ -392,6 +406,7 @@ exports.ObsOfDev = function(req, res, next){
           if(response.statusCode === 401){
             //Token no valido unautorizado
             console.log("UNAUTORIZADO");
+
           }
           else{
             //console.log(response);
@@ -509,6 +524,22 @@ exports.EndpOfDev = function(req, res, next){
     console.log('STATUS /token: ' + response.statusCode);
     if(response.statusCode === 401){
       console.info("UNAUTORIZADO");
+      res.render('endpoints', {
+                title: 'Endpoint of Device '+tDev,
+                measure: "",//measure, 
+                date: "",//date,
+                lat: "",//lat,
+                long: "",//long,
+                qk: qk,
+                unit: unit,
+                nameDep: nameDep,
+                preUrl: preUrl,
+                ulrDep: ulrDep,
+                tDev: tDev,
+                dev: dev,
+                endp: endp,
+                APIKeyGMJS: APIKeyGMJS//PARA EL MAPA TEMPORAL
+      });
     }
     else{
       console.log('HEADERS /token: ' + JSON.stringify(response.headers));

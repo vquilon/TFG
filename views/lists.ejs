@@ -23,7 +23,7 @@
             </tr>
           </thead>
           <tbody>
-          <% for(var i=0;i<length;i++){ %>
+          <% for(var i=0;i<devices.length;i++){ %>
           <tr>
             <td><%=i+1 %></td>
             <td class="type"><%=data.type[i]%></td>
@@ -31,7 +31,7 @@
             <td class="num" id="num<%=i%>"><% if(data.value[i]=="NODATA"){data.value[i]="--"}%><%=data.value[i]%></td>
             <td class="unit" id="unit<%=i%>"><%=data.unit[i]%></td>
             <td>
-              <%if(data.endp[i]!="NODATA"){%>
+              <%if(data.endp[i]!="--"){%>
                 <form action="/<%=data.nameDep[i]%>/<%=data.type[i]%>/endpoint" method="post">
                   <input value="<%=devices[i]%>" name="devf" type="hidden"/>
                   <input value="<%=data.endp[i]%>" name="endp" type="hidden"/>
@@ -62,8 +62,8 @@
       <%}%>
     </div>
   </div>
-  <%if(data.pos.length!=0){%>
-    <%if(data.pos[0]!="NODATA"){%>
+  <%if(data.pos.length!=0||data.pos!=undefined){%>
+    <%if(data.pos[0]!="--"){%>
       <div class="row">
         <div class="col-lg-12">
           <h3 class="text-center">Map</h3>
@@ -110,7 +110,7 @@
       var lat="NODATA";
       var long="NODATA";
       //var pos ="NODATA";
-      <%if(data.pos[0]!="NODATA"){%>
+      <%if(data.pos[0]!="--"){%>
         lat = <%=data.pos[0].lat%>;
         long = <%=data.pos[0].long%>;
       <%}%>
@@ -120,17 +120,19 @@
           lat=0;
           long=0;
         }
-        var LatLong = new google.maps.LatLng(lat, long);
-        var map = new google.maps.Map(document.getElementById('map'), {
-          zoom: 12,
-          center: LatLong,
-          zoomControl: true,
-          scaleControl: true
-        });
+        else{
+          var LatLong = new google.maps.LatLng(lat, long);
+          var map = new google.maps.Map(document.getElementById('map'), {
+            zoom: 12,
+            center: LatLong,
+            zoomControl: true,
+            scaleControl: true
+          });
+        }
         <%var count=0;%>
         <% if(data.pos.length!=0){%>
         <% for(var i=0;i<data.pos.length;i++){ %>
-            <% if(data.pos[i]!="NODATA"){%>
+            <% if(data.pos[i]!="--"){%>
               var LatLong<%=i%> = new google.maps.LatLng(<%=data.pos[i].lat%>,<%=data.pos[i].long%>);
               var marker<%=i%> = new google.maps.Marker({
                 position: LatLong<%=i%>,

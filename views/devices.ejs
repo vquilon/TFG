@@ -261,7 +261,7 @@
                       $("#devices-selected").append("<input type='hidden' name='dep' value='<%=dep%>'>");
                     }
                     $("#devices-text").append("<div class='row container-fluid'><div class='col'>System "+e[0]+"</div><div class='col'>"+e[1]+"</div></div>");
-                    $("#devices-selected").append("<input type='hidden' name='devices' value='"+dev+"'>"+"<input type='hidden' name='types' value='"+e[1]+"'>");  
+                    $("#devices-selected").append("<input type='hidden' name='devices' value='"+dev+"'>"+"<input type='hidden' name='types' value='"+e[1]+"'>"+"<input type='hidden' name='qks' value='"+e[2]+"'>"+"<input type='hidden' name='units' value='"+e[4]+"'>"+"<input type='hidden' name='values' value='"+e[3]+"'>");  
                   }
                 });
               }
@@ -313,7 +313,7 @@
                       $("#devices-selected").append("<div id='send-list' class='text-right'><button class='btn btn-success' type='submit'>Create List</button></div>");
                     }
                     $("#devices-text").append("<div class='row container-fluid'><div class='col'>Device "+e[0]+"</div><div class='col'>"+e[1]+"</div></div>");
-                    $("#devices-selected").append("<p>"+e[1]+"</p><input type='hidden' name='devices' value='"+dev+"'>"+"<input type='hidden' name='types' value='"+e[1]+"'>");  
+                    $("#devices-selected").append("<input type='hidden' name='devices' value='"+dev+"'>"+"<input type='hidden' name='types' value='"+e[1]+"'>"+"<input type='hidden' name='qks' value='"+e[2]+"'>"+"<input type='hidden' name='units' value='"+e[4]+"'>"+"<input type='hidden' name='values' value='"+e[3]+"'>");  
                   }
                 });
               }

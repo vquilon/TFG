@@ -2,15 +2,13 @@
 </head>
 <body>
 	<% include loader %>
+  <script type="text/javascript">console.log("LLEGA");</script>
   <h1><%- title %></h1>
   <pre>
-  	<%=data%>
+    <% for(var i=0;i<data.length;i++){ %>
+      <%- data[i]%>
+    <% } %>
   </pre>
-  <!--<% for(var i=0;i<data.length;i++){ %>
-    <h3><%- data[i].name %></h3>
-    <div><%- data[i].info%></div>
-    <pre><%- data[i].data%></pre>
-  <% } %>-->
 
 <% include footer %>
 <% include scripts %>
