@@ -1,7 +1,8 @@
 var schedule = require('node-schedule');
 var mongoose = require('mongoose');
 var urlMongdb = "mongodb://localhost:27017/prosumerFiot";
-var mongo = require('mongodb').MongoClient;
+var newurlMongdb = "mongodb://vquilon:jarpomLabprosumerfiot1409@ds237620.mlab.com:37620/prosumerfiot";
+var MongoClient = require('mongodb').MongoClient;
 
 var https = require('https');
 var http = require('http');
@@ -25,7 +26,7 @@ var j = schedule.scheduleJob({hour: 19, minute: 44}, function(){
   var d = new Date();
   console.log("Comienza la tarea a las "+d.getHours()+":"+d.getMinutes());
   var actions=[];
-  mongo.connect(urlMongdb, function(err, db){
+  MongoClient.connect(newurlMongdb, function(err, db){
     if(err) throw err;
     var cursor = db.collection('scheduledActions').find();
     cursor.forEach(function(doc, err){
