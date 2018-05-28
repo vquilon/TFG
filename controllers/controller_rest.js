@@ -319,11 +319,12 @@ exports.ObsOfDev = function(req, res, next){
     console.log('STATUS /token: ' + response.statusCode);
     if(response.statusCode === 401){
       console.info("UNAUTORIZADO");
+      //Añadir aqui las response con valores vacios
       res.render('observations', {
                   title: 'Observations of Device '+tDev,
                   tDev: tDev,
                   obs: [],//obs, 
-                  timeObs: timeObs,
+                  timeObs: [],//timeObs
                   measures: [],//measures,
                   units: [],//units,
                   preUrl: preUrl,

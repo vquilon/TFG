@@ -11,7 +11,7 @@
   <main role="main" class="container-fluid">
     <h1 class="text-center"><%=title %> <span class="badge badge-primary"><%=allD%></span></h1>
     <hr>
-    <div class="row">
+    <!--<div class="row">
       <div class="col-lg-4">
       <h5 style="margin: 5px 0 0 0 !important" class="text-center">Select Dates to search observations</h5>
       </div>
@@ -32,7 +32,7 @@
         </div>
       </div>
     </div>
-    <hr>
+    <hr>-->
     <%if(subsystems.length!=0){%>
     <div class="row">
       <div class="col-lg-12">
@@ -58,7 +58,7 @@
             <td class="num" id="num<%=i+''+j%>"><% if(measureSubs[i][j]=="NODATA"){measureSubs[i][j]="--"}%><%=measureSubs[i][j]%></td>
             <td class="unit" id="unit<%=i+''+j%>"><%=unitSubs[i][j]%></td>
             <td>
-            <%if(endSubs[i][j]!="NODATA"){%>
+            <%if(false/*endSubs[i][j]!="NODATA"*/){%>
               <form action="/<%=nameDep%>/<%=typeSubs[i][j]%>/endpoint" method="post">
                 <input value="<%=subsystems[i][j]%>" name="devf" type="hidden"/>
                 <input value="<%=sys[i]%>" name="sys" type="hidden"/>
@@ -78,7 +78,7 @@
                 <input value="<%=qkSubs[i][j]%>" name="qk" type="hidden"/>
                 <input value="<%=unitSubs[i][j]%>" name="unit" type="hidden"/>
                 <input type="hidden" name="dep" value="<%=dep%>">
-                <button class="btn btn-link btn-block" type="submit">Observations</button>
+                <button class="btn btn-link btn-block" type="submit">Schedule Notice</button>
               </form>
             </td>
           </tr>

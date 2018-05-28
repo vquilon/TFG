@@ -31,7 +31,7 @@
             <td class="num" id="num<%=i%>"><% if(data.value[i]=="NODATA"){data.value[i]="--"}%><%=data.value[i]%></td>
             <td class="unit" id="unit<%=i%>"><%=data.unit[i]%></td>
             <td>
-              <%if(data.endp[i]!="--"){%>
+              <%if(false/*data.endp[i]!="--"*/){%>
                 <form action="/<%=data.nameDep[i]%>/<%=data.type[i]%>/endpoint" method="post">
                   <input value="<%=devices[i]%>" name="devf" type="hidden"/>
                   <input value="<%=data.endp[i]%>" name="endp" type="hidden"/>
@@ -49,7 +49,7 @@
                 <input value="<%=data.qk[i]%>" name="qk" type="hidden"/>
                 <input value="<%=data.unit[i]%>" name="unit" type="hidden"/>
                 <input type="hidden" name="dep" value="<%=data.Dep[i]%>">
-                <button class="btn btn-link btn-block" type="submit">Observations</button>
+                <button class="btn btn-link btn-block" type="submit">Schedule Notice</button>
               </form>
             </td>
           </tr>
