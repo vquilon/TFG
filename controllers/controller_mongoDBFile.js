@@ -6,12 +6,18 @@ var mongoose = require('mongoose');
 var mongo = require('mongodb');
 //var Grid = require('mongodb').Grid;
 var Grid = require('gridfs-stream');
+
 //connect GridFS with and Mongo
-//var urlMongdb = "mongodb://localhost:27017/prosumerFiot";
-var newurlMongdb = "mongodb://user:password@ds237620.mlab.com:37620/prosumerfiot";
-//mongoose.connect(urlMongdb);
-//var conn = mongoose.connection;
-//var conn = mongoose.createConnection(urlMongdb);
+var newurlMongdb = process.env.MONGODB_URI;
+if(!newurlMongdb) {
+  newurlMongdb = "mongodb://localhost:27017/prosumerFiot";
+  // newurlMongdb = "mongodb://user:password@ds237620.mlab.com:37620/prosumerfiot";
+  //mongoose.connect(urlMongdb);
+  //var conn = mongoose.connection;
+  //var conn = mongoose.createConnection(urlMongdb);
+}
+
+
 
 //Grid.mongo = mongoose.mongo;
 //var gfs = Grid(conn.db);
@@ -25,9 +31,21 @@ var MongoClient = mongo.MongoClient;
   //Deployments = mongoose.model('Deployments'),
   //fismo = mongoose.model('fismo');//Poner modelo que guarda de los fismos
 
+
+
+var useMongo = true;
+MongoClient.connect(newurlMongdb, function (err, db) {
+  if(err !== null) {
+    useMongo = false;
+    console.log("NO HAY CONEXION A LA BASE DE DATOS")
+  }
+});
+
 //var mongo = require('mongodb').MongoClient;
-var number;
-number = fs.readdirSync('files/');
+// var number;
+// number = fs.readdirSync('files/');
+const dirents = fs.readdirSync('files/', { withFileTypes: true });
+var number = dirents.filter(dirent => dirent.isFile()).map(dirent => dirent.name);
 number = number.length;
 
 var APIKeyGMJS = "AIzaSyD5m1jKSlB97XyZOOITUKLjKXsyZKCpW-o";
@@ -580,6 +598,14 @@ exports.listsOfDevices = function(req, res, next){
               if(response.statusCode === 401){
                 //Token no valido unautorizado
                 console.log("UNAUTORIZADO");
+                res.render('lists', {
+                    status: "status",
+                    data: data,
+                    length: length,
+                    devices: devices,
+                    listName: listName,
+                    APIKeyGMJS: APIKeyGMJS,
+                  });
               }
               else{
                 console.log('HEADERS /observations: ' + JSON.stringify(response.headers));
@@ -715,6 +741,14 @@ exports.listsOfDevices = function(req, res, next){
 
             request.on('error', function(e) {
               console.log("ERROR "+e.message);
+              res.render('lists', {
+                    status: "status",
+                    data: data,
+                    length: length,
+                    devices: devices,
+                    listName: listName,
+                    APIKeyGMJS: APIKeyGMJS,
+                  });
             });
             request.write(postData);
             request.end();
@@ -723,6 +757,14 @@ exports.listsOfDevices = function(req, res, next){
       });
       request.on('error', function(e) {
         console.log("ERROR "+e.message);
+        res.render('lists', {
+                    status: "status",
+                    data: data,
+                    length: length,
+                    devices: devices,
+                    listName: listName,
+                    APIKeyGMJS: APIKeyGMJS,
+                  });
       });  
       request.end();
       db.close();
@@ -732,16 +774,116 @@ exports.listsOfDevices = function(req, res, next){
 
 
 exports.readFiles = function (req, res, next){
-  var files = fs.readdirSync('files/');
+  const dirents = fs.readdirSync('files/', { withFileTypes: true });
+  const filesNames = dirents
+    .filter(dirent => dirent.isFile())
+    .map(dirent => dirent.name);
+  
+  // var files = fs.readdirSync('files/');
+  console.log(filesNames);
   var data = [];
-  files.forEach(file => {
+  filesNames.forEach(file => {
     data.push(fs.readFileSync('files/' + file, 'utf8')); 
   });
 
   res.render('files',
           { title:'Read Files',
-            files:files,
+            files:filesNames,
             data:data});
+};
+
+exports.deploymentsReadFile = function(req,res,next){
+  const dirents = fs.readdirSync('files/', { withFileTypes: true });
+  const files = dirents.filter(dirent => dirent.isFile()).map(dirent => dirent.name);
+  var data = "";
+  var max = 0;
+  var n="";
+  files.forEach(file => {
+    console.log("Nombre del archivo: "+file);
+    // console.log("Tipo del archivo: "+typeof(file));
+    var maxf = Number(file.substring(file.lastIndexOf('T')+1,file.lastIndexOf('N')));
+    if(maxf>max){
+      n=file;
+      console.log("AHORA: "+n);
+    }
+  });
+  data = fs.readFileSync('files/' + n, 'utf8');
+     
+  var deps = [];
+  var nameDeps = [];
+  var preUrlDeps = [];
+  //Completar añadiendo lectura de mongodb------------------------------
+  //console.log("CHUNK "+chunk);
+  //var JsonChunk = JSON.parse(chunk);
+  console.log(typeof(data));
+  console.log(typeof(data.items));
+  
+  var dataJson = JSON.parse(data);//fismoArray[0].
+  var items = dataJson.items;
+  //console.log(items.length);
+  //console.log(items[2].Deps)
+  for(var i=0;i<items.length;i++){
+    if(items[i].DepOne){
+      var d = items[i].DepOne;
+      var urlDeps = d.substring(d.lastIndexOf('/') + 1);
+      deps.push(urlDeps);
+       //TRES FORMAS PARA COGER TODO EL TEXTO DESPUÉS DEL ULTIMO CARACTER EN ESTE CASO '/'
+       //ARRAY SPLIT
+        // deps[i].split("/")[deps[i].split("/").length - 1];
+       //REGULAR EXPRESSION
+       //  /[^/]*$/.exec(deps[i])[0];
+       //LASTINDEX AND SUBSTRING - Es la mas eficiente de todas, requiere menos iteracciones y es más claro
+       
+      switch (urlDeps) {
+        case testbeds[0]:
+          //SmartSantander
+          nameDeps.push("Smart Santander");
+          break;
+        case testbeds[1]:
+          //Soundcity
+          nameDeps.push("Sound City");
+          break;
+        case testbeds[2]:
+          //SmartICS
+          nameDeps.push("Smart ICS");
+          break;
+        case testbeds[3]:
+          //KETI
+          nameDeps.push("KETI");
+          break;
+        case testbeds[4]:
+          //TSSG(RealDC)
+          nameDeps.push("Real DC");
+          break;
+        case testbeds[5]:
+          //Univeristy of Thessaly(Nitos)
+          nameDeps.push("NITOS");
+          break;
+        case testbeds[6]:
+          //GridNet(EXTEND)
+          nameDeps.push("EXTEND");
+          break;
+        case testbeds[7]:
+          //Tera4Agri
+          nameDeps.push("Tera4Agri");
+          break;
+        default:
+          nameDeps.push("Testbed");
+          break;
+       }
+      //Coge el enlace antes de el numero
+        preUrlDep = d.substring(0,d.lastIndexOf('/')+1);
+        preUrlDeps.push(preUrlDep);
+    }
+  }
+  console.log("DEPLOYMENTS Json "+ deps);
+          
+  res.render('deployments', {
+     title: 'Deployments',
+     deps: deps, 
+      nameDeps: nameDeps,
+      preUrlDeps: preUrlDeps
+  });
 };
 
 exports.deploymentsReadMongo = function(req,res,next){
@@ -772,101 +914,103 @@ exports.deploymentsReadMongo = function(req,res,next){
     //var gfs = Grid(conn.db, mongoose.mongo);
     gfs.collection('fismos');
     gfs.files.find().toArray(function (err, files) {
-      if(err){console.log("ERROR "+err);db.close();}
-        else{
-          console.log(files);
-          var data = "";
+      if(err){
+        console.log("ERROR "+err);
+        db.close();
+      }
+      else{
+        console.log(files);
+        var data = "";
 
-          var readstream = gfs.createReadStream({
-            filename: files[0].filename
-          });
+        var readstream = gfs.createReadStream({
+          filename: files[0].filename
+        });
 
-          readstream.on("data", function(chunk){
-            //console.log(chunk.toString());
-            data+=chunk.toString();
-          });
+        readstream.on("data", function(chunk){
+          //console.log(chunk.toString());
+          data+=chunk.toString();
+        });
 
-          readstream.on("end", function(){
-      
-            var deps = [];
-            var nameDeps = [];
-            var preUrlDeps = [];
-            //Completar añadiendo lectura de mongodb------------------------------
-            //console.log("CHUNK "+chunk);
-            //var JsonChunk = JSON.parse(chunk);
-            console.log(typeof(data));
-            console.log(typeof(data.items));
-            
-            var dataJson = JSON.parse(data);//fismoArray[0].
-            var items = dataJson.items;
-            //console.log(items.length);
-            //console.log(items[2].Deps)
-            for(var i=0;i<items.length;i++){
-              if(items[i].DepOne){
-                var d = items[i].DepOne;
-                var urlDeps = d.substring(d.lastIndexOf('/') + 1);
-                deps.push(urlDeps);
-                 //TRES FORMAS PARA COGER TODO EL TEXTO DESPUÉS DEL ULTIMO CARACTER EN ESTE CASO '/'
-                 //ARRAY SPLIT
-                  // deps[i].split("/")[deps[i].split("/").length - 1];
-                 //REGULAR EXPRESSION
-                 //  /[^/]*$/.exec(deps[i])[0];
-                 //LASTINDEX AND SUBSTRING - Es la mas eficiente de todas, requiere menos iteracciones y es más claro
-                 
-                switch (urlDeps) {
-                  case testbeds[0]:
-                    //SmartSantander
-                    nameDeps.push("Smart Santander");
-                    break;
-                  case testbeds[1]:
-                    //Soundcity
-                    nameDeps.push("Sound City");
-                    break;
-                  case testbeds[2]:
-                    //SmartICS
-                    nameDeps.push("Smart ICS");
-                    break;
-                  case testbeds[3]:
-                    //KETI
-                    nameDeps.push("KETI");
-                    break;
-                  case testbeds[4]:
-                    //TSSG(RealDC)
-                    nameDeps.push("Real DC");
-                    break;
-                  case testbeds[5]:
-                    //Univeristy of Thessaly(Nitos)
-                    nameDeps.push("NITOS");
-                    break;
-                  case testbeds[6]:
-                    //GridNet(EXTEND)
-                    nameDeps.push("EXTEND");
-                    break;
-                  case testbeds[7]:
-                    //Tera4Agri
-                    nameDeps.push("Tera4Agri");
-                    break;
-                  default:
-                    nameDeps.push("Testbed");
-                    break;
-                 }
-                //Coge el enlace antes de el numero
-                  preUrlDep = d.substring(0,d.lastIndexOf('/')+1);
-                  preUrlDeps.push(preUrlDep);
-              }
+        readstream.on("end", function(){
+          var deps = [];
+          var nameDeps = [];
+          var preUrlDeps = [];
+          //Completar añadiendo lectura de mongodb------------------------------
+          //console.log("CHUNK "+chunk);
+          //var JsonChunk = JSON.parse(chunk);
+          console.log(typeof(data));
+          console.log(typeof(data.items));
+          
+          var dataJson = JSON.parse(data);//fismoArray[0].
+          var items = dataJson.items;
+          //console.log(items.length);
+          //console.log(items[2].Deps)
+          for(var i=0;i<items.length;i++){
+            if(items[i].DepOne){
+              var d = items[i].DepOne;
+              var urlDeps = d.substring(d.lastIndexOf('/') + 1);
+              deps.push(urlDeps);
+               //TRES FORMAS PARA COGER TODO EL TEXTO DESPUÉS DEL ULTIMO CARACTER EN ESTE CASO '/'
+               //ARRAY SPLIT
+                // deps[i].split("/")[deps[i].split("/").length - 1];
+               //REGULAR EXPRESSION
+               //  /[^/]*$/.exec(deps[i])[0];
+               //LASTINDEX AND SUBSTRING - Es la mas eficiente de todas, requiere menos iteracciones y es más claro
+               
+              switch (urlDeps) {
+                case testbeds[0]:
+                  //SmartSantander
+                  nameDeps.push("Smart Santander");
+                  break;
+                case testbeds[1]:
+                  //Soundcity
+                  nameDeps.push("Sound City");
+                  break;
+                case testbeds[2]:
+                  //SmartICS
+                  nameDeps.push("Smart ICS");
+                  break;
+                case testbeds[3]:
+                  //KETI
+                  nameDeps.push("KETI");
+                  break;
+                case testbeds[4]:
+                  //TSSG(RealDC)
+                  nameDeps.push("Real DC");
+                  break;
+                case testbeds[5]:
+                  //Univeristy of Thessaly(Nitos)
+                  nameDeps.push("NITOS");
+                  break;
+                case testbeds[6]:
+                  //GridNet(EXTEND)
+                  nameDeps.push("EXTEND");
+                  break;
+                case testbeds[7]:
+                  //Tera4Agri
+                  nameDeps.push("Tera4Agri");
+                  break;
+                default:
+                  nameDeps.push("Testbed");
+                  break;
+               }
+              //Coge el enlace antes de el numero
+                preUrlDep = d.substring(0,d.lastIndexOf('/')+1);
+                preUrlDeps.push(preUrlDep);
             }
-            console.log("DEPLOYMENTS Json "+ deps);
-                    
-            res.render('deployments', {
-               title: 'Deployments',
-               deps: deps, 
-                nameDeps: nameDeps,
-                preUrlDeps: preUrlDeps
-            });
-            db.close();
+          }
+          console.log("DEPLOYMENTS Json "+ deps);
+                  
+          res.render('deployments', {
+             title: 'Deployments',
+             deps: deps, 
+              nameDeps: nameDeps,
+              preUrlDeps: preUrlDeps
           });
-        }
-      });
+          db.close();
+        });
+      }
+    });
   });
     //db.close();
   //});//MongoCLient
@@ -1780,7 +1924,7 @@ exports.readMongoDevofDep = function(req,res,next){
                           else{
                             auxM.push("NODATA"); 
                           } 
-                        }else{c++;console.log("No se añade"+c);}  
+                        }else{c++;console.log("No se añade "+c);}  
                       }
                       else{
                         //console.log("VALOR DE I"+i);
@@ -1923,10 +2067,10 @@ exports.readMongoDevofDep = function(req,res,next){
           }
         }
       }
-      console.log("Devices"+allD);
-      console.log("Length of sys"+sys.length);//Misma longitud que el de abajo
-      console.log("Length of sys in subsystems"+subsystems.length);
-      console.log("Length of sys in Typesubsystems"+subsystems.length);
+      console.log("Devices "+allD);
+      console.log("Length of sys "+sys.length);//Misma longitud que el de abajo
+      console.log("Length of sys in subsystems "+subsystems.length);
+      console.log("Length of sys in Typesubsystems "+subsystems.length);
       
       //NUEVO para poder asegurar el máximo de dispositivos encontrados se busca tambien por los dispositivos de las obsevations
       /*for(i=0;i<items.length;i++){
@@ -2438,6 +2582,29 @@ exports.readMongoDevofDep = function(req,res,next){
             });
             request.on('error', function(e) {
               console.log("ERROR "+e.message);
+              res.render('devices', {
+                    title: 'Devices of Deployment '+nameDep,
+                    nameDep: nameDep,
+                    devices: devices,//enlace entero
+                    typeDev: typeDev,
+                    endpoints: endpoints,
+                    qks: qks,
+                    units: units,
+                    positions,
+                    measures,
+                    //devs: devs,//id despues de la /
+                    sys: sys,
+                    subsystems: subsystems,
+                    typeSubs: typeSubs,
+                    endSubs: endSubs,
+                    qkSubs: qkSubs,
+                    unitSubs: unitSubs,
+                    positionSubs,
+                    measureSubs,
+                    allD: allD,
+                    APIKeyGMJS: APIKeyGMJS,
+                    dep:dep
+                  });
             });
             request.write(postData);
             request.end();
@@ -2446,6 +2613,29 @@ exports.readMongoDevofDep = function(req,res,next){
       });
       request.on('error', function(e) {
         console.log("ERROR "+e.message);
+         res.render('devices', {
+          title: 'Devices of Deployment '+nameDep,
+          nameDep: nameDep,
+          devices: devices,//enlace entero
+          typeDev: typeDev,
+          endpoints: endpoints,
+          qks: qks,
+          units: units,
+          positions,
+          measures,
+          //devs: devs,//id despues de la /
+          sys: sys,
+          subsystems: subsystems,
+          typeSubs: typeSubs,
+          endSubs: endSubs,
+          qkSubs: qkSubs,
+          unitSubs: unitSubs,
+          positionSubs,
+          measureSubs,
+          allD: allD,
+          APIKeyGMJS: APIKeyGMJS,
+          dep:dep
+        });
       });  
       request.end();
 
@@ -2958,39 +3148,49 @@ exports.readFileDevofDep = function(req,res,next){
   console.log("Nombre del deployment seleccionado:"+nameDep);
   console.log("Nombre de la url del deployment:"+dep);
   dep = preUrl + dep;
-  var files = fs.readdirSync('files/');
+  // var files = fs.readdirSync('files/');
+  const dirents = fs.readdirSync('files/', { withFileTypes: true });
+  const files = dirents.filter(dirent => dirent.isFile()).map(dirent => dirent.name);
   var data = "";
   var max = 0;
   var n="";
   files.forEach(file => {
     console.log("Nombre del archivo: "+file);
-    console.log("Nombre del archivo: "+typeof(file));
+    // console.log("Tipo del archivo: "+typeof(file));
     var maxf = Number(file.substring(file.lastIndexOf('T')+1,file.lastIndexOf('N')));
     if(maxf>max){
       n=file;
-      console.log("AHORA"+n);
+      console.log("AHORA: "+n);
     }
   });
-  /*files.forEach(file => {
-    if(file==n){
-      data = fs.readFileSync('files/' + file, 'utf8');
-    }
-  });*/
+
   data = fs.readFileSync('files/' + n, 'utf8');
   //console.log("DATA "+data);
-  var jsonData = JSON.parse(data);
+  var dataJson = JSON.parse(data);
   var items = dataJson.items;
-  var devices = [];
+  var devices = [];//dispositivos que son su propio systema
+  var allD = 0;
   var typeDev = [];
-  var devs = [];
+  var endpoints = [];
+  var qks = [];
+  var units = [];
+  var positions = [];
+  var measures = [];
+  //var devs = [];
   //Array de systemas
   var sys = [];
   //Array de array donde van los subsistemas
-  var subsystems = [[]];
-  var typeSubs = [[]];
+  var subsystems = [];
+  var typeSubs = [];
+  var endSubs = [];
+  var qkSubs = [];
+  var unitSubs = [];
+  var positionSubs = [];
+  var measureSubs =[];
   //Extraer todos los devices que me sirven
   var i = 0;
   var numSys = 0;
+  var c=0;
   for(i;i<items.length;i++){
   //if(items[i].dev.substring(0,d.lastIndexOf("/"))!="https://platform.fiesta-iot.eu/iot-registry/api/observations"){
     if(items[i].Dep!=undefined/* || items[i].DepofS!=undefined*/){
@@ -2999,74 +3199,619 @@ exports.readFileDevofDep = function(req,res,next){
         //Los dev que tienen un sys se añaden en otro momento
         if(items[i].dev!=undefined){//hay subD o no
           //if(items[i].type!="http://purl.oclc.org/NET/ssnx/ssn#Device"){
-            //Tipo de dispositivo
+            //Solo leo los dispositivos que son del tipo Device osea systemas
+            var tNew ="";
             if(items[i].type.substring(items[i].type.lastIndexOf("#")+1)=="Device"){
               //typeDev.push("System");
-              sys.push(items[i].dev.substring(items[i].dev.lastIndexOf("/")+1));
+              //console.log("Valor de i "+i);
+              sys.push(items[i].dev/*.substring(items[i].dev.lastIndexOf("/")+1)*/);
               var auxS = [];
               var auxT = [];
+              var auxE = [];
+              var auxqK = [];
+              var auxU = [];
+              var auxP = [];
+              var auxM = [];
+              //Agregar aqui PLATFORM con localizacion
               //Hay Subsystemas o no
               if(items[i].subD!=undefined){
                 var j=0;
+                var sensorN="";
+                var sensorN1="";
+                var flagNuevo = false;
                 //Busca los subsystemas que tiene ese device y los mete en un array
-                for(j;j<items.length;j++){
+                for(j;j+i<items.length;j++){
                   if(items[i+j].dev==items[i].dev){
-                    auxS.push(items[i+j].subD.substring(items[i+j].subD.lastIndexOf("/")+1));
-                    auxT.push(items[i+j].typeSubD.substring(items[i+j].typeSubD.lastIndexOf("#")+1));
+                    var sensorN1=items[i+j].subD;
+                    if(sensorN==""){
+                      sensorN=items[i+j].subD;
+                      flagNuevo=true;
+                    }
+                    else{
+                      if(sensorN!=sensorN1){
+                        sensorN=items[i+j].subD;
+                        flagNuevo=true;
+                      }else{
+                        flagNuevo=false;
+                      }
+                    }
+                    if(flagNuevo){
+                      auxS.push(items[i+j].subD/*.substring(items[i+j].subD.lastIndexOf("/")+1)*/);
+                      auxT.push(items[i+j].typeSubD.substring(items[i+j].typeSubD.lastIndexOf("#")+1));
+                      //NUMERO DEVICES
+                      allD++;
+                      if(items[i+j].endp/*SD*/!=undefined){
+                        auxE.push(items[i+j].endp/*SD*/.substring(0,items[i+j].endp/*SD*/.lastIndexOf("^")-1));
+                      }
+                      else{
+                        auxE.push("NODATA");
+                      }
+                      //Puede que haya que hacer sentencia if else pero en teoria todos los devices tienen un qk y unit
+                      if(items[i+j].qK/*SD*/!=undefined){
+                        auxqK.push(items[i+j].qK/*SD*/.substring(items[i+j].qK/*SD*/.lastIndexOf("#")+1));
+                      }
+                      else{
+                        auxqK.push("NODATA");
+                      }
+                      if(items[i+j].unit/*SD*/!=undefined){
+                        auxU.push(items[i+j].unit/*SD*/.substring(items[i+j].unit/*SD*/.lastIndexOf("#")+1));
+                      }
+                      else{
+                        auxU.push("NODATA");
+                      }
+                      if(items[i+j].lat!=undefined&&items[i+j].long!=undefined){
+                        var pos ={
+                          "lat":Number(items[i+j].lat.substring(0,items[i+j].lat.lastIndexOf("^")-1)),
+                          "long":Number(items[i+j].long.substring(0,items[i+j].long.lastIndexOf("^")-1))
+                        }
+                        auxP.push(pos);
+                      }
+                      else{
+                        auxP.push("NODATA");
+                      }
+                      //NUEVO
+                      if(items[i+j].num!=undefined){
+                        auxM.push(Number(items[i+j].num.substring(0,items[i+j].num.indexOf("^^"))));
+                      }
+                      else{
+                        auxM.push("NODATA"); 
+                      } 
+                    }else{c++;console.log("No se añade "+c);}  
                   }
                   else{
                     //console.log("VALOR DE I"+i);
                     //console.log("VALOR DE I"+j);
-                    i=i+j;
+                    //console.log("Valor i "+i+" Valor j "+j);
+                    i=i+j-1;//Continua el valor de i mas los subsystemas agregados con valor j
+                    //Ya que estan ordenados por dev, y aparece el mismo system con diferentes
+                    //subsystem en cada siguiente iteracción
                     //console.log("VALOR DE I2"+i);
                     break;
                   }
                 }
                 
               }
-              //Device==System
+              //Systemas sin ningun subsystem
               else{//Deberia diferenciar entre El systema y subsistemas(los unicos que se ven ahora)
-                auxS.push(items[i].dev.substring(items[i].dev.lastIndexOf("/")+1));
+                auxS.push(items[i].dev/*.substring(items[i].dev.lastIndexOf("/")+1)*/);
                 auxT.push(items[i].type.substring(items[i].type.lastIndexOf("#")+1));
+                //allD++;
+                if(items[i].endp!=undefined){
+                  auxE.push(items[i].endp.substring(0,items[i].endp.lastIndexOf("^")-1));
+                }
+                else{
+                  auxE.push("NODATA");
+                }
+
+                if(items[i].qK!=undefined){
+                  auxqK.push(items[i].qK.substring(items[i].qK.lastIndexOf("#")+1));
+                }
+                else{
+                  auxqK.push("NODATA");
+                }
+                if(items[i].unit!=undefined){
+                  auxU.push(items[i].unit.substring(items[i].unit.lastIndexOf("#")+1));
+                }
+                else{
+                  auxU.push("NODATA");
+                }             
+                if(items[i].lat!=undefined&&items[i].long!=undefined){
+                  var pos ={
+                    "lat":Number(items[i].lat.substring(0,items[i].lat.lastIndexOf("^")-1)),
+                    "long":Number(items[i].long.substring(0,items[i].long.lastIndexOf("^")-1))
+                  }
+                  auxP.push(pos);
+                }
+                else{
+                  auxP.push("NODATA");
+                }
+                //NUEVO
+                if(items[i].num!=undefined){
+                  auxM.push(Number(items[i].num.substring(0,items[i].num.indexOf("^^"))));
+                }
+                else{
+                  auxM.push("NODATA"); 
+                }
+                
               }
               /*if(numSys==0){
                 subsystems[0].push(auxS);
                 typeSubs[0].push(auxT);  
               }
-              else{*///Empiezan en el valor 1 no en el 0
+              else{*/
                 subsystems.push(auxS);
-                typeSubs.push(auxT);  
+                typeSubs.push(auxT);
+                endSubs.push(auxE);
+                qkSubs.push(auxqK);
+                unitSubs.push(auxU);
+                positionSubs.push(auxP);
+                //NUEVO
+                measureSubs.push(auxM);
               //}
               numSys++;
               
             }
-            else{
-              typeDev.push(items[i].type.substring(items[i].type.lastIndexOf("#")+1));
-              //Todo el enlace
-              devices.push(items[i].dev);
-              //Solo el número identificativo despues de el ultimo /
-              devs.push(items[i].dev.substring(items[i].dev.lastIndexOf("/")+1));
-              
+            else{//Device == SYSTEM
+              var sensorN="";
+              var sensorN1="";
+              var flagNuevo = false;
+              var sensorN1=items[i].dev;
+              if(sensorN==""){
+                sensorN=items[i].dev;
+                flagNuevo=true;
+              }
+              else{
+                if(sensorN!=sensorN1){
+                  flagNuevo=true;
+                }else{
+                  flagNuevo=false;
+                }
+              }
+              if(flagNuevo){
+                typeDev.push(items[i].type.substring(items[i].type.lastIndexOf("#")+1));
+                //Todo el enlace
+                devices.push(items[i].dev);
+                allD++;
+                //Solo el número identificativo despues de el ultimo /
+                //devs.push(items[i].dev.substring(items[i].dev.lastIndexOf("/")+1));
+                if(items[i].endp!=undefined){
+                    endpoints.push(items[i].endp.substring(0,items[i].endp.lastIndexOf("^")-1));
+                  }
+                else{
+                  endpoints.push("NODATA");
+                }
+                if(items[i].qK!=undefined){
+                  qks.push(items[i].qK.substring(items[i].qK.lastIndexOf("#")+1));
+                }
+                else{
+                  qks.push("NODATA");
+                }
+                if(items[i].unit!=undefined){
+                  units.push(items[i].unit.substring(items[i].unit.lastIndexOf("#")+1));
+                }
+                else{
+                  units.push("NODATA");
+                }
+                if(items[i].lat!=undefined&&items[i].long!=undefined){
+                  var pos ={
+                    "lat":Number(items[i].lat.substring(0,items[i].lat.lastIndexOf("^")-1)),
+                    "long":Number(items[i].long.substring(0,items[i].long.lastIndexOf("^")-1))
+                  }
+                  positions.push(pos);
+                }
+                else{
+                  positions.push("NODATA");
+                }
+                if(items[i].num!=undefined){
+                  auxM.push(Number(items[i].num.substring(0,items[i].num.indexOf("^^"))));
+                }
+                else{
+                  auxM.push("NODATA"); 
+                }
+              }
             }
             
           //}
         }
+        /*else{//sale del for por que ya no hay mas dev
+          break;
+        }*/
       }
     }
   }
-  console.log("Length of sys"+sys.length);//Siempre hay uno menos porque??TIENE UNA MENOS PERO ES LA REAL SUBSYSTEMS EMPIEZA EN EL INDICE 1 el 0 esta vacio
-  console.log("Length of sys in subsystems"+subsystems.length);
-  console.log("Length of sys in Typesubsystems"+subsystems.length);
-  res.render('devices', {
-    title: 'Get Devices of Deployment '+nameDep,
-    devices: devices,//enlace entero
-    //devs: devs,//id despues de la /
-    sys: sys,
-    subsystems: subsystems,
-    typeSubs: typeSubs,
-    typeDev: typeDev,
-    nameDep: nameDep
+  console.log("Devices "+allD);
+  console.log("Length of sys "+sys.length);//Misma longitud que el de abajo
+  console.log("Length of sys in subsystems "+subsystems.length);
+  console.log("Length of sys in Typesubsystems "+subsystems.length);
+
+  var token = '';
+  var body="";
+  var request = https.request(optionsToken, function(response) {
+    console.log('STATUS /token: ' + response.statusCode);
+    if(response.statusCode === 401){
+      console.info("UNAUTORIZADO TOKEN");
+      res.render('devices', {
+        title: 'Devices of Deployment '+nameDep,
+        nameDep: nameDep,
+        devices: devices,//enlace entero
+        typeDev: typeDev,
+        endpoints: endpoints,
+        qks: qks,
+        units: units,
+        positions,
+        measures,
+        //devs: devs,//id despues de la /
+        sys: sys,
+        subsystems: subsystems,
+        typeSubs: typeSubs,
+        endSubs: endSubs,
+        qkSubs: qkSubs,
+        unitSubs: unitSubs,
+        positionSubs,
+        measureSubs,
+        allD: allD,
+        APIKeyGMJS: APIKeyGMJS,
+        dep:dep
+      });
+    }
+    else{
+      console.log('HEADERS /token: ' + JSON.stringify(response.headers));
+      response.on('data', function(chunk) {
+        body+=chunk;
+      }).on('end', function() {
+        token = JSON.parse(body).tokenId;
+        //Obtener todas las observaciones que coincidan con un device
+        var postData =
+          "Prefix ssn: <http://purl.oclc.org/NET/ssnx/ssn#>"+
+          "Prefix iotlite: <http://purl.oclc.org/NET/UNIS/fiware/iot-lite#>"+ 
+          "Prefix dul: <http://www.loa.istc.cnr.it/ontologies/DUL.owl#>"+
+          "PREFIX rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#>"+
+          "Prefix geo: <http://www.w3.org/2003/01/geo/wgs84_pos#>"+
+          "Prefix time: <http://www.w3.org/2006/time#>"+
+          "Prefix m3-lite: <http://purl.org/iot/vocab/m3-lite#>"+
+          "Prefix xsd: <http://www.w3.org/2001/XMLSchema#>"+
+          "Prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>"+
+          "Prefix iot-lite: <http://purl.oclc.org/NET/UNIS/fiware/iot-lite#>"+
+          "SELECT ?obs ?s ?sys ?t ?num ?unit ?lat ?long ?qk ?type "+
+          "WHERE {"+
+            "?obs a ssn:Observation."+
+            "?obs ssn:observedBy ?s ."+
+            "?s rdf:type ?type ."+
+            "optional{"+
+            "?s iot-lite:isSubSystemOf ?sys ."+
+            "?sys ssn:hasDeployment ?Dep ."+
+            "}"+
+            "VALUES ?Dep {"+
+              "<"+dep+">"+
+            "} ."+
+            "?obs ssn:observationSamplingTime ?time ."+
+            "?time time:inXSDDateTime ?t ."+
+            "?obs ssn:observationResult ?result ."+
+            "?result ssn:hasValue ?value ."+
+            "?value dul:hasDataValue ?num ."+
+            "?obs geo:location ?point ."+
+            "?point geo:lat ?lat ."+
+            "?point geo:long ?long ."+
+            "?s iot-lite:hasQuantityKind ?qKURI ."+
+            "?qKURI rdf:type ?qk ."+
+            "?s iot-lite:hasUnit ?unitURI ."+
+            "?unitURI rdf:type ?unit ."+
+          "}ORDER BY ?t";
+          console.log(postData);
+        var options = {
+          host: 'platform.fiesta-iot.eu',
+          path: '/iot-registry/api/queries/execute/global',
+          method: 'POST',
+          headers: {
+                'Content-Type': 'text/plain',
+                'Content-Length': Buffer.byteLength(postData),
+                'Accept': 'application/json',
+                'iPlanetDirectoryPro': token
+          },
+          timeout: 660000//10 minutos
+        };
+        //var timeObs = [];//fecha de las observaciones
+        //var measures = [];//medidas de las observaciones
+        var request = https.request(options, function(response) {
+          body="";
+          console.log('STATUS /observations: ' + response.statusCode);
+          if(response.statusCode === 401){
+            //Token no valido unautorizado
+            console.log("UNAUTORIZADO DEVANDOBS");
+            res.render('devices', {
+              title: 'Devices of Deployment '+nameDep,
+              nameDep: nameDep,
+              devices: devices,//enlace entero
+              typeDev: typeDev,
+              endpoints: endpoints,
+              qks: qks,
+              units: units,
+              positions,
+              measures,
+              //devs: devs,//id despues de la /
+              sys: sys,
+              subsystems: subsystems,
+              typeSubs: typeSubs,
+              endSubs: endSubs,
+              qkSubs: qkSubs,
+              unitSubs: unitSubs,
+              positionSubs,
+              measureSubs,
+              allD: allD,
+              APIKeyGMJS: APIKeyGMJS,
+              dep:dep
+            });
+          }
+          else{
+            console.log('HEADERS /observations: ' + JSON.stringify(response.headers));
+            response.on('data', function(chunk) {
+              //Capturar esto para ver si hay error y transmitir a la pagina un error en el servidor y guardar logs
+              body+=chunk;
+              //console.log("CHUNK "+chunk);
+            }).on('end', function() {
+              if(response.statusCode===200){
+                var JsonChunk = JSON.parse(body);//cazar exceptino
+                var items = JsonChunk.items;
+                //Extraer todas las observaciones que me sirven
+                if(items.length==0){
+                  //No hay observaciones de este sensor
+                  console.log("VACIOOOOOO");
+                }
+                else{
+                  console.log("LLEEEENOO Medidas Observacion");
+                  for(i=0;i<items.length;i++){
+                    if(items[i].s!=undefined){
+                      if(items[i].sys){
+                        var flagObs = false;//flag para comprobar si hay un systema nuevo
+                        for(var j=0;j<sys.length;j++){
+                          if(items[i].sys==sys[j]){
+                            flagObs=true;
+                            //console.log("Hay un sistema que coincide");
+                            for(var k=0;k<subsystems[j].length;k++){
+                              if(subsystems[j][k]==items[i].s){
+                                //console.log("Agregar medida");
+                                if(measureSubs[j][k]=="NODATA"){
+                                  console.log("--Medida agregada");
+                                  measureSubs[j][k]=Number(items[i].num.substring(0,items[i].num.indexOf("^^")));
+                                }
+                                break;
+                              }
+                              if((k+1)==subsystems[j].length){//solo lo añade al final cuando ha comprobado que no esta ya
+                                allD++;
+                                console.log("Nuevo sensor en Systema existente"+j+"-"+k);
+                                subsystems[j].push(items[i].s);
+                                typeSubs[j].push(items[i].type.substring(items[i].type.lastIndexOf("#")+1));
+                                
+                                if(items[i].endp!=undefined){
+                                  endSubs[j].push(items[i].endp.substring(0,items[i].endp.lastIndexOf("^")-1));
+                                }
+                                else{
+                                  endSubs[j].push("NODATA");
+                                }
+                                if(items[i].qk!=undefined){
+                                  qkSubs[j].push(items[i].qk.substring(items[i].qk.lastIndexOf("#")+1));
+                                }
+                                else{
+                                  qkSubs[j].push("NODATA");
+                                }
+                                if(items[i].unit!=undefined){
+                                  unitSubs[j].push(items[i].unit.substring(items[i].unit.lastIndexOf("#")+1));
+                                }
+                                else{
+                                  unitSubs[j].push("NODATA");
+                                }
+                                if(items[i].lat!=undefined&&items[i].long!=undefined){
+                                  var pos ={
+                                    "lat":Number(items[i].lat.substring(0,items[i].lat.lastIndexOf("^")-1)),
+                                    "long":Number(items[i].long.substring(0,items[i].long.lastIndexOf("^")-1))
+                                  }
+                                  positionSubs[j].push(pos);
+                                }
+                                else{
+                                  positionSubs[j].push("NODATA");
+                                }
+                                measureSubs[j].push(Number(items[i].num.substring(0,items[i].num.indexOf("^^"))));
+                              }
+                            }
+                          }
+                        }
+                        if(!flagObs){//Si no ha encontrado ningún sistema entonces tendra que añadir uno nuevo
+                          console.log("Sistema nuevo - Sensor nuevo");
+                          sys.push(items[i].sys);
+                          var auxS = [];
+                          var auxT = [];
+                          var auxE = [];
+                          var auxQ = [];
+                          var auxU = [];
+                          var auxP = [];
+                          var auxM = [];
+                          allD++;
+                          auxS.push(items[i].s);
+                          subsystems.push(auxS);
+                          auxT.push(items[i].type.substring(items[i].type.lastIndexOf("#")+1));
+                          typeSubs.push(auxT);
+                          if(items[i].endp!=undefined){
+                            auxE.push(items[i].endp.substring(0,items[i].endp.lastIndexOf("^")-1));
+                            endSubs.push(auxE);
+                          }
+                          else{
+                            auxE.push("NODATA");
+                            endSubs.push(auxE);
+                          }
+                          if(items[i].qK!=undefined){
+                            auxQ.push(items[i].qK.substring(items[i].qK.lastIndexOf("#")+1));
+                            akSubs.push(auxQ);
+                          }
+                          else{
+                            auxQ.push("NODATA");
+                            qkSubs.push(auxQ);
+                          }
+                          if(items[i].unit!=undefined){
+                            auxU.push(items[i].unit.substring(items[i].unit.lastIndexOf("#")+1));
+                            unitSubs.push(auxU);
+                          }
+                          else{
+                            auxU.push("NODATA");
+                            unitSubs.push(auxU);
+                          }
+                          if(items[i].lat!=undefined&&items[i].long!=undefined){
+                            var pos ={
+                              "lat":Number(items[i].lat.substring(0,items[i].lat.lastIndexOf("^")-1)),
+                              "long":Number(items[i].long.substring(0,items[i].long.lastIndexOf("^")-1))
+                            }
+                            auxP.push(pos);
+                            positionSubs.push(auxP);
+                          }
+                          else{
+                            auxP.push("NODATA");
+                            positionSubs.push(auxP);
+                          }
+                          //NUEVO
+                          auxM.push(Number(items[i].num.substring(0,items[i].num.indexOf("^^"))));
+                          measureSubs.push(auxM);
+                        }
+                      }//No tiene sistema
+                      else{
+                        var flagObs=false;
+                        for(var j=0;j<devices.length;j++){
+                          if(items[i].s==devices[j]){
+                            if(measures[j]=="NODATA"){
+                              console.log("--Medida agregada device sin systema");
+                              measures[j]=Number(items[i].num.substring(0,items[i].num.indexOf("^^")));
+                            }
+                            flagObs=true;
+                          }
+                        }
+                        if(!flagObs){
+                          console.log("Hay un device nuevo sin sistema");
+                          allD++;
+                          //Aqui poner el sensor directamente en uno libre sin Systemas
+                          devices.push(items[i].s);
+                          typeDev.push(items[i].type.substring(items[i].type.lastIndexOf("#")+1));
+                          if(items[i].endp!=undefined){
+                             endpoints.push(items[i].endp.substring(0,items[i].endp.lastIndexOf("^")-1));
+                          }
+                          else{
+                            endpoints.push("NODATA");
+                          }
+                          if(items[i].qK!=undefined){
+                            qks.push(items[i].qK.substring(items[i].qK.lastIndexOf("#")+1));
+                          }
+                          else{
+                            qks.push("NODATA");
+                          }
+                          if(items[i].unit!=undefined){
+                            units.push(items[i].unit.substring(items[i].unit.lastIndexOf("#")+1));
+                          }
+                          else{
+                            units.push("NODATA");
+                          }
+                          if(items[i].lat!=undefined&&items[i].long!=undefined){
+                            var pos ={
+                              "lat":Number(items[i].lat.substring(0,items[i].lat.lastIndexOf("^")-1)),
+                              "long":Number(items[i].long.substring(0,items[i].long.lastIndexOf("^")-1))
+                            }
+                            positions.push(pos);
+                          }
+                          else{
+                            positions.push("NODATA");
+                          }
+                          //NUEVO
+                          measures.push(Number(items[i].num.substring(0,items[i].num.indexOf("^^"))));
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+              console.log("Devices"+allD);
+              console.log("Length of sys"+sys.length);//Misma longitud que el de abajo
+              console.log("Length of sys in subsystems"+subsystems.length);
+              console.log("Length of sys in Typesubsystems"+subsystems.length);
+              res.render('devices', {
+                title: 'Devices of Deployment '+nameDep,
+                nameDep: nameDep,
+                devices: devices,//enlace entero
+                typeDev: typeDev,
+                endpoints: endpoints,
+                qks: qks,
+                units: units,
+                positions,
+                measures,
+                //devs: devs,//id despues de la /
+                sys: sys,
+                subsystems: subsystems,
+                typeSubs: typeSubs,
+                endSubs: endSubs,
+                qkSubs: qkSubs,
+                unitSubs: unitSubs,
+                positionSubs,
+                measureSubs,
+                allD: allD,
+                APIKeyGMJS: APIKeyGMJS,
+                dep:dep
+              });
+            })
+          }
+        });
+        request.on('error', function(e) {
+          console.log("ERROR "+e.message);
+          res.render('devices', {
+            title: 'Devices of Deployment '+nameDep,
+            nameDep: nameDep,
+            devices: devices,//enlace entero
+            typeDev: typeDev,
+            endpoints: endpoints,
+            qks: qks,
+            units: units,
+            positions,
+            measures,
+            //devs: devs,//id despues de la /
+            sys: sys,
+            subsystems: subsystems,
+            typeSubs: typeSubs,
+            endSubs: endSubs,
+            qkSubs: qkSubs,
+            unitSubs: unitSubs,
+            positionSubs,
+            measureSubs,
+            allD: allD,
+            APIKeyGMJS: APIKeyGMJS,
+            dep:dep
+          });
+        });
+        request.write(postData);
+        request.end();
+      });
+    }
   });
+  request.on('error', function(e) {
+    console.log("ERROR "+e.message);
+     res.render('devices', {
+      title: 'Devices of Deployment '+nameDep,
+      nameDep: nameDep,
+      devices: devices,//enlace entero
+      typeDev: typeDev,
+      endpoints: endpoints,
+      qks: qks,
+      units: units,
+      positions,
+      measures,
+      //devs: devs,//id despues de la /
+      sys: sys,
+      subsystems: subsystems,
+      typeSubs: typeSubs,
+      endSubs: endSubs,
+      qkSubs: qkSubs,
+      unitSubs: unitSubs,
+      positionSubs,
+      measureSubs,
+      allD: allD,
+      APIKeyGMJS: APIKeyGMJS,
+      dep:dep
+    });
+  });  
+  request.end();
 };
 
 //---------------------------------------------------------------------------------------
