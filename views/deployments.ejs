@@ -31,12 +31,20 @@
           <%}if(nameDeps[i]=="UNKNOWN"){%>
           <p class="card-text">This TestBed has different Devices.</p>
           <%}%>
-          <form class="text-center" action="/<%=nameDeps[i]%>/readMongoDevices" method="post" >
-            <input value="<%=deps[i]%>" name="dep" type="hidden"/>
-            <input value="<%=nameDeps[i]%>" name="nDep" type="hidden"/>
-            <input value="<%=preUrlDeps[i]%>" name="preUrl" type="hidden"/>
-            <button class="btn btn-dark" type="submit">DEVICES</button>
-          </form>
+          <div>
+            <form class="text-center" action="/<%=nameDeps[i]%>/readMongoDevices" method="post" >
+              <input value="<%=deps[i]%>" name="dep" type="hidden"/>
+              <input value="<%=nameDeps[i]%>" name="nDep" type="hidden"/>
+              <input value="<%=preUrlDeps[i]%>" name="preUrl" type="hidden"/>
+              <button class="btn btn-sm btn-success" type="submit">Show Devices with MongoDB</button>
+            </form>
+            <form class="text-center" action="/<%=nameDeps[i]%>/readFileDevices" method="post" >
+              <input value="<%=deps[i]%>" name="dep" type="hidden"/>
+              <input value="<%=nameDeps[i]%>" name="nDep" type="hidden"/>
+              <input value="<%=preUrlDeps[i]%>" name="preUrl" type="hidden"/>
+              <button class="btn btn-sm btn-info" type="submit">Show Devices with FileSystem</button>
+            </form>
+          </div>
         </div>
       </div>
     <%}%>
