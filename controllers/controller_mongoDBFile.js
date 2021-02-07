@@ -11,39 +11,27 @@ var Grid = require('gridfs-stream');
 var newurlMongdb = process.env.MONGODB_URI;
 if(!newurlMongdb) {
   newurlMongdb = "mongodb://localhost:27017/prosumerFiot";
-  // newurlMongdb = "mongodb://user:password@ds237620.mlab.com:37620/prosumerfiot";
-  //mongoose.connect(urlMongdb);
-  //var conn = mongoose.connection;
-  //var conn = mongoose.createConnection(urlMongdb);
 }
 
-
-
-//Grid.mongo = mongoose.mongo;
-//var gfs = Grid(conn.db);
-//console.log(conn);
 var MongoClient = mongo.MongoClient;
-// create or use an existing mongodb-native db instance.
-// for this example we'll just create one:
-//var db = new mongo.Db('prosumerFiot', new mongo.Server("localhost", 27017));
-//var db = new mongo.Db('prosumerfiot', new mongo.Server("user:password@ds237620.mlab.com", 37620));
-
-  //Deployments = mongoose.model('Deployments'),
-  //fismo = mongoose.model('fismo');//Poner modelo que guarda de los fismos
-
-
 
 var useMongo = true;
-MongoClient.connect(newurlMongdb, function (err, db) {
-  if(err !== null) {
+const mongoClient = new MongoClient(newurlMongdb, {useNewUrlParser: true});
+MongoClient.connect(newurlMongdb, function(err, db){
+  if(err !== null || db === null) {
+    console.log("NO HAY CONEXION A LA BASE DE DATOS");
     useMongo = false;
-    console.log("NO HAY CONEXION A LA BASE DE DATOS")
   }
+  // const collection = mongoClient.collection("devices");
+  // perform actions on the collection object
+  console.log(db);
+  db.close();
 });
 
-//var mongo = require('mongodb').MongoClient;
-// var number;
-// number = fs.readdirSync('files/');
+// MongoClient.connect(newurlMongdb, function (err, db) {
+//   console.log(db);
+// });
+
 const dirents = fs.readdirSync('files/', { withFileTypes: true });
 var number = dirents.filter(dirent => dirent.isFile()).map(dirent => dirent.name);
 number = number.length;
@@ -111,9 +99,7 @@ var preUrlDep = "";
 exports.fismo = function (req, res, next){
   var d = new Date();
   //NUEVO
-  console.log(req);
   var file = fs.readFileSync(req.files[0].path);
-  console.log(file);
   //console.log("BUFFER: "+ Buffer.from(req.files[0].buffer));
   var name = "devices&Deployments"+ Date.now() + "N" + number + ".json";
   //var data =  /*Buffer.from(*/req.files[0].buffer/*)*/;//Fichero del fismo con los devices y deployments
@@ -126,14 +112,13 @@ exports.fismo = function (req, res, next){
   var header = "Date: "+d.getDate()+"/"+(d.getMonth()+1)+"/"+d.getFullYear()+" | Time: "+d.getHours()+":"+d.getMinutes();
   var info = header + origin + infoType + infoFile;
 
-  MongoClient.connect(newurlMongdb, function (err, db) {
-
-  /*db.open(function (err) {
-    if (err){ 
-      return handleError(err);
-    }*/
-   
-
+  MongoClient.connect(newurlMongdb, function(err, db){
+    if(err){
+      console.error(err);
+      if(db){db.close();}
+      res.send("Error when trying to connect with MongoDB");
+      return;
+    }
     var gfs = Grid(db, mongo);
     var writestream = gfs.createWriteStream(
       {
@@ -151,30 +136,6 @@ exports.fismo = function (req, res, next){
       console.log(file.filename);
       db.close();
     });
-
-  //});
-
-  /*var newfismo = {
-    name : name,
-    info : info,
-    data : data
-  };
-  mongo.connect(urlMongdb, function(err, db){
-    if(err) throw err;
-    db.collection('fismos').insertOne(newfismo, function(err, records){
-      if(err){
-        console.warn(err.message);
-      }
-      else{
-        console.log("fismo added");
-      }
-      db.close();
-    });
-    
-  });
-
-  res.send(data);*/
-  //db.close();
   });
 };
 
@@ -186,17 +147,15 @@ exports.fismo2 = function (req, res, next){
   var year = dateTime.getFullYear();
   var date = day+"-"+month+"-"+year;
   var time = dateTime.getHours()+":"+dateTime.getMinutes();
-  //NUEVO
-  //var file = fs.readFileSync(req.files[0].path);
-  //console.log(req);
+
   //CREAR VARIABLES A GUARDAR
   var name = "DevicesDeployments";
-  var data =  req.files[0].buffer;//Fichero del fismo con los devices y deployments
+  //Fichero del fismo con los devices y deployments
+  var data =  req.files[0].buffer;
   console.log("Tipo de buffer1 "+typeof(req.files[0].buffer));
   console.log("Tipo de buffer2 "+typeof(data));
   data = data.toString();
   console.log("Tipo de buffer3 "+typeof(data));
-  //data = JSON.parse(data);
   var origin = "Hostname Information: " + req.hostname + " | IP information: " + req.ip + " | ";
   //var secure = "Info Secure: " + req.secure + ".  ";
   //var cookies = "Cookies: " + JSON.stringify(req.cookies) + ".  ";
@@ -211,19 +170,15 @@ exports.fismo2 = function (req, res, next){
     info : info,
     data : data
   };*/
-  MongoClient.connect(newurlMongdb, function (err, db) {
-  /*db.open(function (err, db) {
-    if (err){ 
-      return handleError(err);
-      db.close();
-    }*/
+  MongoClient.connect(newurlMongdb, function(err, db){
     var gfs = Grid(db, mongo);
     var writestream = gfs.createWriteStream(
       {
         filename: 'DepsDevsObs.json', // a filename
         mode: 'w', // default value: w
         //chunkSize: 1024,
-        content_type: req.files[0].mimetype, // For content_type to work properly, set "mode"-option to "w" too!
+        // For content_type to work properly, set "mode"-option to "w" too!
+        content_type: req.files[0].mimetype, 
         root: 'fismos',
       }
     );
@@ -234,200 +189,84 @@ exports.fismo2 = function (req, res, next){
       db.close();
     });
     writestream.on('error', function(err){
+      res.send(err);
       console.log("ERROR "+err);
     });
     writestream.write(data);
     writestream.end();
-  //});
-  /*mongo.connect(urlMongdb, function(err, db){
-    if(err) throw err;
-    db.collection('fismos').findAndModify(
-      {name:"DepsDevsObs"},
-      [['_id','asc']],
-      {$set: {"info":info, "data":data}},
-      //Crea uno nuevo si no encuentra ningun fismo(si esta vacio)
-      //https://stackoverflow.com/questions/16358857/mongodb-atomic-findorcreate-findone-insert-if-nonexistent-but-do-not-update
-      {upsert: true},
-      function(err, result){
-        if(err){
-          console.warn("ERROR "+err.message);
-          /*db.collection('fismos').insertOne(newfismo, function(err, records){
-            console.log("Record added as "+records[0]._id);
-          });//*
-        }else{
-            //console.dir(result);
-            console.log("Update fismo");
-        }
-
-        db.close();
-    });
-  });*/
-
-  //ANTIGUO CON LA BD ABIERTA EN APP
-  /*fismo.update({name:"DevicesDeployments"}, {info:info, data:data}, function(err){
-    if(err){
-      console.log("No existe ningún dato, Creando...");
-      var newfismo = new fismo({
-          name : name,
-          info : info,
-          data : data
-      });
-      newfismo.save(function (err) {
-      if (err){
-         console.error(err);
-      } 
-      });
-    }
-  });*/
-  
-  //res.send(data);
-  //db.close();
   });
 };
 
 exports.readMongo = function (req, res, next){
- //ANTIGUO CON LA BD ABIERTA EN APP
- /*fismo.find(function(err, fismo){
-    console.log("Tipo: "+ typeof(fismo));
-    var f = JSON.stringify(fismo);
-    console.log("Tipo2: "+typeof(f));
-    //console.log(JSON.parse(fismo));
-    if (err){
-      return console.error(err);
-    } else{
-      res.render('data',
-          { title:'Data of MongoDB',
-            data:f});
-    }
-  });*/
-
-  /*var fismoArray = [];
-  var names = [];
-  mongo.connect(urlMongdb, function(err, dbs){
-    if(err) throw err;
-    var cursor = dbs.collection('fismos.files').find();
-    cursor.forEach(function(doc, err){
-      fismoArray.push(doc);
-    }, function(){
-      dbs.close();
-      //var dataJson=JSON.parse(fismoArray[0].data);
-      for(var i=0;i<fismoArray.length;i++){
-        names.push(fismoArray[i].filename);
-        console.log(fismoArray[i].filename+" i:"+i);
-        
+  MongoClient.connect(newurlMongdb, function(err, db){
+    var gfs = Grid(db, mongo);
+    gfs.collection('fismos');
+    gfs.files.find().toArray(function (err, files) {
+      if(err){
+        console.log("ERROR "+err);
       }
-    });
-  });*/
-  //for(var i=0;i<names.length;i++){
-     //Version NUEVA con GRIDFS
-       MongoClient.connect(newurlMongdb, function (err, db) {
-        /*db.open(function (err, db) {
-          if (err){ 
-            console.log("ERROR "+err);
-            db.close();
-          }*/
-          var gfs = Grid(db, mongo);
-          //console.log(gfs);
-          gfs.collection('fismos');
-          gfs.files.find().toArray(function (err, files) {
-            if(err){console.log("ERROR "+err);}
-            else{
-              console.log(files);
-              var long = Number(files[0].length);
-              var data1 = "";
-              var data2 = "";
-              var data3 = "";
-              var data = [];
-              var readstream = gfs.createReadStream({
-                filename: files[0].filename
-              });
+      else{
+        console.log(files);
+        var long = Number(files[0].length);
+        var data1 = "";
+        var data2 = "";
+        var data3 = "";
+        var data = [];
+        var readstream = gfs.createReadStream({
+          filename: files[0].filename
+        });
 
-              readstream.on("data", function(chunk){
-                if(data1.length+data2.length+data3.length<=long/3){
-                  data1+=chunk.toString();
-                } else if(data1.length+data2.length+data3.length<=(2*long)/3){
-                  data2+=chunk.toString();
-                } else if(data1.length+data2.length+data3.length<=long){
-                  data3+=chunk.toString();
-                }
-                
-                //console.log("Numero de chunks "+data.length);
-              });
+        readstream.on("data", function(chunk){
+          if(data1.length+data2.length+data3.length<=long/3){
+            data1+=chunk.toString();
+          } else if(data1.length+data2.length+data3.length<=(2*long)/3){
+            data2+=chunk.toString();
+          } else if(data1.length+data2.length+data3.length<=long){
+            data3+=chunk.toString();
+          }
+        });
 
-              readstream.on("end", function(){
-                data.push(data1);
-                data.push(data2);
-                data.push(data3);
-                //console.log("FIRST "+typeof(data));
-                //data = JSON.parse(data);
-                //console.log("BUFFER "+typeof(data));
-                //if(i+1===names.length){
-                  res.render('data',{ 
-                    title:'Data of MongoDB',
-                    data:data
-                  });
-                  db.close();
-                //}
-              });
-            }
+        readstream.on("end", function(){
+          data.push(data1);
+          data.push(data2);
+          data.push(data3);
+          res.render('data',{ 
+            title:'Data of MongoDB',
+            data:data
           });
-        //});db.open
-        db.close();
-      });
-  //}
-  
-
-
-  //Version anterior con mongo sin mas
-  /*mongo.connect(urlMongdb, function(err, db){
-    if(err) throw err;
-    var cursor = db.collection('fismos').find();
-    cursor.forEach(function(doc, err){
-      fismoArray.push(doc);
-    }, function(){
-      db.close();
-      //var dataJson=JSON.parse(fismoArray[0].data);
-      res.render('data',{ 
-        title:'Data of MongoDB',
-        data:fismoArray
-      });
-    });
-  });
-
- };*/
-//Abrir y cerrar conexion en vez de iniciarla al principio en app.js
-/*mongoClient.connect(urlMongdb, function(err, db) {
-      if (err) {
-          console.log('Sorry unable to connect to MongoDB Error:', err);
-      } else {
-          console.log("Connected successfully to server", urlMongdb);
-          var collection = db.collection('fismo');
-    
-          console.log("Print persons collection:- ");
-    
-          collection.find({}).toArray(function(err, person) {
-              console.log(JSON.stringify(person, null, 2));
-          });
-    
           db.close();
+        });
       }
+    });
+
+  db.close();
   });
-*/
+  
 };
+
 //Mostrar los deployments por mongo o files, y de un deployment mostrar los devices
-
-
 exports.home = function(req, res, next){
   var listArray = [];
+  var listName = [];
+  var devices = [];
+  var id = [];
   MongoClient.connect(newurlMongdb, function(err, db){
-    if(err) throw err;
+    if(err) {
+      console.error(err);
+      console.log("Error al conectar con la base de datos");
+      res.render('index', {
+        id: id,
+        devices: devices,
+        listName: listName,
+        APIKeyGMJS: APIKeyGMJS,
+      });
+      if(db){db.close();}
+      return;
+    }
     var cursor = db.collection('devicesList').find();
     cursor.forEach(function(doc, err){
       listArray.push(doc);
     }, function(){
-      var listName = [];
-      var devices = [];
-      var id = [];
       var requestDevices="";
       for(var i=0;i<listArray.length;i++){
         console.log("Data id "+listArray[i]._id);
@@ -462,6 +301,9 @@ exports.home = function(req, res, next){
 }
 
 exports.listsOfDevices = function(req, res, next){
+  var devices = [];
+  var requestDevices="";
+  var length=0;
   var listName = req.body.listName;
   var id = req.body.listId;
   var listArray = [];
@@ -478,7 +320,18 @@ exports.listsOfDevices = function(req, res, next){
       "nameDep":[]
    };
   MongoClient.connect(newurlMongdb, function(err, db){
-    if(err) throw err;
+    if(err){
+      res.render('lists', {
+        status: "error",
+        data: data,
+        length: length,
+        devices: devices,
+        listName: listName,
+        APIKeyGMJS: APIKeyGMJS,
+      });
+      if(db){db.close();}
+      return;
+    }
     var cursor = db.collection('devicesList').find();
     cursor.forEach(function(doc, err){
       listArray.push(doc);
@@ -526,13 +379,13 @@ exports.listsOfDevices = function(req, res, next){
         if(response.statusCode === 401){
           console.info("UNAUTORIZADO TOKEN");
           res.render('lists', {
-                    status: "status",
-                    data: data,
-                    length: length,
-                    devices: devices,
-                    listName: listName,
-                    APIKeyGMJS: APIKeyGMJS,
-                  });
+            status: "status",
+            data: data,
+            length: length,
+            devices: devices,
+            listName: listName,
+            APIKeyGMJS: APIKeyGMJS,
+          });
         }
         else{
           console.log('HEADERS /token: ' + JSON.stringify(response.headers));
@@ -599,13 +452,13 @@ exports.listsOfDevices = function(req, res, next){
                 //Token no valido unautorizado
                 console.log("UNAUTORIZADO");
                 res.render('lists', {
-                    status: "status",
-                    data: data,
-                    length: length,
-                    devices: devices,
-                    listName: listName,
-                    APIKeyGMJS: APIKeyGMJS,
-                  });
+                  status: "status",
+                  data: data,
+                  length: length,
+                  devices: devices,
+                  listName: listName,
+                  APIKeyGMJS: APIKeyGMJS,
+                });
               }
               else{
                 console.log('HEADERS /observations: ' + JSON.stringify(response.headers));
@@ -742,13 +595,13 @@ exports.listsOfDevices = function(req, res, next){
             request.on('error', function(e) {
               console.log("ERROR "+e.message);
               res.render('lists', {
-                    status: "status",
-                    data: data,
-                    length: length,
-                    devices: devices,
-                    listName: listName,
-                    APIKeyGMJS: APIKeyGMJS,
-                  });
+                status: "status",
+                data: data,
+                length: length,
+                devices: devices,
+                listName: listName,
+                APIKeyGMJS: APIKeyGMJS,
+              });
             });
             request.write(postData);
             request.end();
@@ -756,22 +609,21 @@ exports.listsOfDevices = function(req, res, next){
         }
       });
       request.on('error', function(e) {
-        console.log("ERROR "+e.message);
+        console.error("ERROR "+e.message);
         res.render('lists', {
-                    status: "status",
-                    data: data,
-                    length: length,
-                    devices: devices,
-                    listName: listName,
-                    APIKeyGMJS: APIKeyGMJS,
-                  });
+          status: "status",
+          data: data,
+          length: length,
+          devices: devices,
+          listName: listName,
+          APIKeyGMJS: APIKeyGMJS,
+        });
       });  
       request.end();
       db.close();
     });
   });
 }
-
 
 exports.readFiles = function (req, res, next){
   const dirents = fs.readdirSync('files/', { withFileTypes: true });
@@ -792,22 +644,35 @@ exports.readFiles = function (req, res, next){
             data:data});
 };
 
-exports.deploymentsReadFile = function(req,res,next){
+function deploymentsReadFile(req,res,next){
   const dirents = fs.readdirSync('files/', { withFileTypes: true });
   const files = dirents.filter(dirent => dirent.isFile()).map(dirent => dirent.name);
   var data = "";
   var max = 0;
   var n="";
+  var dataJson = {};
+  files.sort();
+  files.reverse();
+  let goodReading = false;
   files.forEach(file => {
     console.log("Nombre del archivo: "+file);
     // console.log("Tipo del archivo: "+typeof(file));
     var maxf = Number(file.substring(file.lastIndexOf('T')+1,file.lastIndexOf('N')));
     if(maxf>max){
-      n=file;
-      console.log("AHORA: "+n);
+      if (!goodReading){
+        try{
+          n=file;
+          console.log("AHORA: "+n);
+          data = fs.readFileSync('files/' + n, 'utf8');
+          dataJson = JSON.parse(data);
+          goodReading = true;
+          
+        } catch(error) {
+          console.error(error);
+        }
+      }
     }
   });
-  data = fs.readFileSync('files/' + n, 'utf8');
      
   var deps = [];
   var nameDeps = [];
@@ -817,8 +682,6 @@ exports.deploymentsReadFile = function(req,res,next){
   //var JsonChunk = JSON.parse(chunk);
   console.log(typeof(data));
   console.log(typeof(data.items));
-  
-  var dataJson = JSON.parse(data);//fismoArray[0].
   var items = dataJson.items;
   //console.log(items.length);
   //console.log(items[2].Deps)
@@ -885,29 +748,17 @@ exports.deploymentsReadFile = function(req,res,next){
       preUrlDeps: preUrlDeps
   });
 };
-
+exports.deploymentsReadFile = deploymentsReadFile;
 exports.deploymentsReadMongo = function(req,res,next){
-
-  /*var fismoArray = [];
-  mongo.connect(urlMongdb, function(err, db){
-    if(err) throw err;
-    var cursor = db.collection('fismos').find();
-    cursor.forEach(function(doc, err){
-      fismoArray.push(doc);
-    }, function(){*/
-      //LA FIESTA VA AQUI
-  
-
   MongoClient.connect(newurlMongdb, function (err, db) {
-  //conn.once('open', function(){
-  //console.log(conn.db);
-  //console.log(mongoose.mongo);
+    if(err){
+      console.error(err);
+      deploymentsReadFile(req, res, next);
 
-  /*db.open(function (err, db) {
-    if (err){ 
-      console.log("ERROR "+err);
-    db.close();
-    }*/
+      if(db){db.close();}
+      return;
+    }
+    
     //var bucket = new mongo.GridFSBucket(db);
     var gfs = Grid(db, mongo);
     //NUEVO
@@ -915,8 +766,10 @@ exports.deploymentsReadMongo = function(req,res,next){
     gfs.collection('fismos');
     gfs.files.find().toArray(function (err, files) {
       if(err){
-        console.log("ERROR "+err);
+        console.error(err);
+        deploymentsReadFile(req, res, next);
         db.close();
+        return;
       }
       else{
         console.log(files);
@@ -1081,709 +934,14 @@ SYSTEMS==DEVICES - 14/11/2017
 "qK": "http://purl.org/iot/vocab/m3-lite#Humidity",
 "unit": "http://purl.org/iot/vocab/m3-lite#Percent"
 */
-/*exports.readMongoDevofDep = function(req,res,next){
-  var allD=0;
-  var nameDep = req.body.nDep;//para ver que se envia desde el formulario
-  var dep = req.body.dep;
-  var preUrl = req.body.preUrl;
-  console.log("Nombre del deployment seleccionado:"+nameDep);
-  console.log("Nombre de la url del deployment:"+dep);
-  dep = preUrl + dep;
-  
-  var fismoArray = [];
-  mongo.connect(urlMongdb, function(err, db){
-    if(err) throw err;
-    var cursor = db.collection('fismos').find();
-    cursor.forEach(function(doc, error){
-      if(error) throw error;
-      fismoArray.push(doc);
-    }, function(){
-      //LA FIESTA VA AQUI
-      var dataJson = JSON.parse(fismoArray[0].data);
-      var items = dataJson.items;
-      var devices = [];//dispositivos que son su propio systema
-      var typeDev = [];
-      var endpoints = [];
-      var qks = [];
-      var units = [];
-      var positions = [];
-      var measures = [];
-      //var devs = [];
-      //Array de systemas
-      var sys = [];
-      //Array de array donde van los subsistemas
-      var subsystems = [];
-      var typeSubs = [];
-      var endSubs = [];
-      var qkSubs = [];
-      var unitSubs = [];
-      var positionSubs = [];
-      var measureSubs =[];
-      //Extraer todos los devices que me sirven
-      var i = 0;
-      var numSys = 0;
-      for(i;i<items.length;i++){
-      //if(items[i].dev.substring(0,d.lastIndexOf("/"))!="https://platform.fiesta-iot.eu/iot-registry/api/observations"){
-        if(items[i].Dep!=undefined){
-        //Si el device no tiene Depl o un systema con Deplo no sirve el device
-          if(items[i].Dep==dep){//Que el deployment sea el que se ha seleccionado
-            //Los dev que tienen un sys se añaden en otro momento
-            if(items[i].dev!=undefined){//hay subD o no
-              //if(items[i].type!="http://purl.oclc.org/NET/ssnx/ssn#Device"){
-                //Solo leo los dispositivos que son del tipo Device osea systemas
-                
-                if(items[i].type.substring(items[i].type.lastIndexOf("#")+1)=="Device"){
-                  //typeDev.push("System");
-                  sys.push(items[i].dev);
-                  var auxS = [];
-                  var auxT = [];
-                  var auxE = [];
-                  var auxqK = [];
-                  var auxU = [];
-                  var auxP = [];
-                  var auxM = [];
-                  //Agregar aqui PLATFORM con localizacion
-                  //Hay Subsystemas o no
-                  if(items[i].subD!=undefined){
-                    var j=0;
-                    //Busca los subsystemas que tiene ese device y los mete en un array
-                    for(j;j+i<items.length;j++){
-                      if(items[i+j].dev==items[i].dev){
-                        auxS.push(items[i+j].subD);
-                        auxT.push(items[i+j].typeSubD.substring(items[i+j].typeSubD.lastIndexOf("#")+1));
-                        //NUMERO DEVICES
-                        allD++;
-                        if(items[i+j].endp!=undefined){
-                          auxE.push(items[i+j].endp.substring(0,items[i+j].endp.lastIndexOf("^")-1));
-                        }
-                        else{
-                          auxE.push("NODATA");
-                        }
-                        //Puede que haya que hacer sentencia if else pero en teoria todos los devices tienen un qk y unit
-                        if(items[i+j].qK!=undefined){
-                          auxqK.push(items[i+j].qK.substring(items[i+j].qK.lastIndexOf("#")+1));
-                        }
-                        else{
-                          auxqK.push("NODATA");
-                        }
-                        if(items[i+j].unit!=undefined){
-                          auxU.push(items[i+j].unit.substring(items[i+j].unit.lastIndexOf("#")+1));
-                        }
-                        else{
-                          auxU.push("NODATA");
-                        }
-                        if(items[i+j].lat!=undefined&&items[i+j].long!=undefined){
-                          var pos ={
-                            "lat":Number(items[i+j].lat.substring(0,items[i+j].lat.lastIndexOf("^")-1)),
-                            "long":Number(items[i+j].long.substring(0,items[i+j].long.lastIndexOf("^")-1))
-                          }
-                          auxP.push(pos);
-                        }
-                        else{
-                          auxP.push("NODATA");
-                        }
-                        //NUEVO
-                        if(items[i+j].num!=undefined){
-                          
-                          if(t){
 
-                          }
-                          Number(items[i+j].num.substring(0,items[i].num.indexOf("^^")))
-                        }
-                        else{
-                          auxM.push("NODATA"); 
-                        }          
-                      }
-                      else{
-                        //console.log("VALOR DE I"+i);
-                        //console.log("VALOR DE I"+j);
-                        i=i+j;//Continua el valor de i mas los subsystemas agregados con valor j
-                        //Ya que estan ordenados por dev, y aparece el mismo system con diferentes
-                        //subsystem en cada siguiente iteracción
-                        //console.log("VALOR DE I2"+i);
-                        break;
-                      }
-                    }
-                    
-                  }
-                  //Systemas sin ningun subsystem
-                  else{//Deberia diferenciar entre El systema y subsistemas(los unicos que se ven ahora)
-                    auxS.push(items[i].dev);
-                    auxT.push(items[i].type.substring(items[i].type.lastIndexOf("#")+1));
-                    allD++;
-                    if(items[i].endp!=undefined){
-                      auxE.push(items[i].endp.substring(0,items[i].endp.lastIndexOf("^")-1));
-                    }
-                    else{
-                      auxE.push("NODATA");
-                    }
-
-                    if(items[i].qK!=undefined){
-                      auxqK.push(items[i].qK.substring(items[i].qK.lastIndexOf("#")+1));
-                    }
-                    else{
-                      auxqK.push("NODATA");
-                    }
-                    if(items[i].unit!=undefined){
-                      auxU.push(items[i].unit.substring(items[i].unit.lastIndexOf("#")+1));
-                    }
-                    else{
-                      auxU.push("NODATA");
-                    }             
-                    if(items[i+j].lat!=undefined&&items[i+j].long!=undefined){
-                      var pos ={
-                        "lat":Number(items[i+j].lat.substring(0,items[i+j].lat.lastIndexOf("^")-1)),
-                        "long":Number(items[i+j].long.substring(0,items[i+j].long.lastIndexOf("^")-1))
-                      }
-                      auxP.push(pos);
-                    }
-                    else{
-                      auxP.push("NODATA");
-                    }
-                    //NUEVO
-                    auxM.push("NODATA"); 
-                    
-                  }
-                  
-                    subsystems.push(auxS);
-                    typeSubs.push(auxT);
-                    endSubs.push(auxE);
-                    qkSubs.push(auxqK);
-                    unitSubs.push(auxU);
-                    positionSubs.push(auxP);
-                    //NUEVO
-                    measureSubs.push(auxM);
-                  //}
-                  numSys++;
-                  
-                }
-                else{//Device == SYSTEM
-                  typeDev.push(items[i].type.substring(items[i].type.lastIndexOf("#")+1));
-                  //Todo el enlace
-                  devices.push(items[i].dev);
-                  allD++;
-                  //Solo el número identificativo despues de el ultimo /
-                  //devs.push(items[i].dev.substring(items[i].dev.lastIndexOf("/")+1));
-                  if(items[i].endp!=undefined){
-                      endpoints.push(items[i].endp.substring(0,items[i].endp.lastIndexOf("^")-1));
-                    }
-                  else{
-                    endpoints.push("NODATA");
-                  }
-                  if(items[i].qK!=undefined){
-                    qks.push(items[i].qK.substring(items[i].qK.lastIndexOf("#")+1));
-                  }
-                  else{
-                    qks.push("NODATA");
-                  }
-                  if(items[i].unit!=undefined){
-                    units.push(items[i].unit.substring(items[i].unit.lastIndexOf("#")+1));
-                  }
-                  else{
-                    units.push("NODATA");
-                  }
-                  if(items[i].lat!=undefined&&items[i].long!=undefined){
-                    var pos ={
-                      "lat":Number(items[i].lat.substring(0,items[i].lat.lastIndexOf("^")-1)),
-                      "long":Number(items[i].long.substring(0,items[i].long.lastIndexOf("^")-1))
-                    }
-                    positions.push(pos);
-                  }
-                  else{
-                    positions.push("NODATA");
-                  }
-                  measures.push("NODATA");
-                }
-                
-              //}
-            }
-          }
-        }
-      }
-      console.log("Devices"+allD);
-      console.log("Length of sys"+sys.length);//Misma longitud que el de abajo
-      console.log("Length of sys in subsystems"+subsystems.length);
-      console.log("Length of sys in Typesubsystems"+subsystems.length);
-      //NUEVO para poder asegurar el máximo de dispositivos encontrados se busca tambien por los dispositivos de las obsevations
-      for(i=0;i<items.length;i++){
-        if(items[i].Dep!=undefined){
-          if(items[i].Dep==dep){
-            if(items[i].dev!=undefined){
-              if(items[i].sys){
-                var flagObs = false;//flag para comprobar si hay un systema nuevo
-                for(var j=0;j<sys.length;j++){
-                  if(items[i].sys==sys[j]){
-                    flagObs=true;
-                    //console.log("Hay un sistema que coincide");
-                    for(var k=0;k<subsystems[j].length;k++){
-                      if(subsystems[j][k]==items[i].dev){
-                        break;
-                      }
-                      if((k+1)==subsystems[j].length){//solo lo añade al final cuando ha comprobado que no esta ya
-                        console.log("Device Nuevo - Systema existente");
-                        allD++;
-                        subsystems[j].push(items[i].dev);
-                        typeSubs[j].push(items[i].typeS.substring(items[i].typeS.lastIndexOf("#")+1));
-                        
-                        if(items[i].endp!=undefined){
-                          endSubs[j].push(items[i].endp.substring(0,items[i].endp.lastIndexOf("^")-1));
-                        }
-                        else{
-                          endSubs[j].push("NODATA");
-                        }
-                        if(items[i].qK!=undefined){
-                          qkSubs[j].push(items[i].qK.substring(items[i].qK.lastIndexOf("#")+1));
-                        }
-                        else{
-                          qkSubs[j].push("NODATA");
-                        }
-                        if(items[i].unit!=undefined){
-                          unitSubs[j].push(items[i].unit.substring(items[i].unit.lastIndexOf("#")+1));
-                        }
-                        else{
-                          unitSubs[j].push("NODATA");
-                        }
-                        if(items[i].lat!=undefined&&items[i].long!=undefined){
-                          var pos ={
-                            "lat":Number(items[i].lat.substring(0,items[i].lat.lastIndexOf("^")-1)),
-                            "long":Number(items[i].long.substring(0,items[i].long.lastIndexOf("^")-1))
-                          }
-                          positionSubs[j].push(pos);
-                        }
-                        else{
-                          positionSubs[j].push("NODATA");
-                        }
-                        //NUEVO
-                        if(items[i].num!=undefined){
-                          measureSubs[j].push(items[i].num);
-                        }
-                        else{
-                          measureSubs[j].push("NODATA");
-                        }
-                      }
-                    }
-                  }
-                }
-                if(!flagObs){//Si no ha encontrado ningún sistema entonces tendra que añadir uno nuevo
-                  console.log("Sistema nuevo - Device Nuevo");
-                  sys.push(items[i].sys);
-                  var auxS = [];
-                  var auxT = [];
-                  var auxE = [];
-                  var auxQ = [];
-                  var auxU = [];
-                  var auxP = [];
-                  var auxM = [];
-                  allD++;
-                  auxS.push(items[i].dev);
-                  subsystems.push(auxS);
-                  auxT.push(items[i].typeS.substring(items[i].typeS.lastIndexOf("#")+1));
-                  typeSubs.push(auxT);
-
-                  if(items[i].endp!=undefined){
-                    auxE.push(items[i].endp.substring(0,items[i].endp.lastIndexOf("^")-1));
-                    endSubs.push(auxE);
-                  }
-                  else{
-                    auxE.push("NODATA");
-                    endSubs.push(auxE);
-                  }
-                  if(items[i].qK!=undefined){
-                    auxQ.push(items[i].qK.substring(items[i].qK.lastIndexOf("#")+1));
-                    qkSubs.push(auxQ);
-                  }
-                  else{
-                    auxQ.push("NODATA");
-                    qkSubs.push(auxQ);
-                  }
-                  if(items[i].unit!=undefined){
-                    auxU.push(items[i].unit.substring(items[i].unit.lastIndexOf("#")+1));
-                    unitSubs.push(auxU);
-                  }
-                  else{
-                    auxU.push("NODATA");
-                    unitSubs.push(auxU);
-                  }
-                  if(items[i].lat!=undefined&&items[i].long!=undefined){
-                    var pos ={
-                      "lat":Number(items[i].lat.substring(0,items[i].lat.lastIndexOf("^")-1)),
-                      "long":Number(items[i].long.substring(0,items[i].long.lastIndexOf("^")-1))
-                    }
-                    auxP.push(pos);
-                    positionSubs.push(auxP);
-                  }
-                  else{
-                    auxP.push("NODATA");
-                    positionSubs.push(auxP);
-                  }
-                  //NUEVO
-                  if(items[i].num!=undefined){
-                    auxM.push();
-                    measureSubs.push(auxM);
-                  }
-                  else{
-                    auxM.push("NODATA");
-                    measureSubs.push(auxM);
-                  }
-                  
-                }
-              }//No tiene sistema
-              else{
-                var flagObs=false;
-                for(var j=0;j<devices.length;j++){
-                  if(items[i].dev==devices[j]){
-                    flagObs=true;
-                  }
-                }
-                if(!flagObs){
-                  console.log("Device nuevo suelto");
-                  allD++;
-                  //Aqui poner el sensor directamente en uno libre sin Systemas
-                  devices.push(items[i].dev);
-                  typeDev.push(items[i].typeS.substring(items[i].typeS.lastIndexOf("#")+1));
-                  if(items[i].endp!=undefined){
-                     endpoints.push(items[i].endp.substring(0,items[i].endp.lastIndexOf("^")-1));
-                  }
-                  else{
-                    endpoints.push("NODATA");
-                  }
-                  if(items[i].qK!=undefined){
-                    qks.push(items[i].qK.substring(items[i].qK.lastIndexOf("#")+1));
-                  }
-                  else{
-                    qks.push("NODATA");
-                  }
-                  if(items[i].unit!=undefined){
-                    units.push(items[i].unit.substring(items[i].unit.lastIndexOf("#")+1));
-                  }
-                  else{
-                    units.push("NODATA");
-                  }
-                  if(items[i].lat!=undefined&&items[i].long!=undefined){
-                    var pos ={
-                      "lat":Number(items[i].lat.substring(0,items[i].lat.lastIndexOf("^")-1)),
-                      "long":Number(items[i].long.substring(0,items[i].long.lastIndexOf("^")-1))
-                    }
-                    positions.push(pos);
-                  }
-                  else{
-                    positions.push("NODATA");
-                  }
-                  //NUEVO
-                  measures.push("NODATA");
-                }
-              }
-            }
-          }
-        }
-      }
-      console.log("Devices"+allD);
-      console.log("Length of sys"+sys.length);//Misma longitud que el de abajo
-      console.log("Length of sys in subsystems"+subsystems.length);
-      console.log("Length of sys in Typesubsystems"+subsystems.length);
-  
-      var token = '';
-      var body="";
-      var request = https.request(optionsToken, function(response) {
-        console.log('STATUS /token: ' + response.statusCode);
-        if(response.statusCode === 401){
-          console.info("UNAUTORIZADO");
-        }
-        else{
-          console.log('HEADERS /token: ' + JSON.stringify(response.headers));
-          response.on('data', function(chunk) {
-            body+=chunk;
-          }).on('end', function() {
-            token = JSON.parse(body).tokenId;
-            //Obtener todas las observaciones que coincidan con un device
-            var postData =
-              "PREFIX ssn: <http://purl.oclc.org/NET/ssnx/ssn#>"+ 
-              "PREFIX rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#>"+
-              "PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>"+
-              "PREFIX iot-lite: <http://purl.oclc.org/NET/UNIS/fiware/iot-lite#>"+
-              "PREFIX time: <http://www.w3.org/2006/time#>"+
-              "Prefix xsd: <http://www.w3.org/2001/XMLSchema#>"+
-              "PREFIX dul: <http://www.loa.istc.cnr.it/ontologies/DUL.owl#>"+
-              "SELECT ?obs ?s ?sys ?t ?num ?unit ?qk ?type "+
-              "WHERE {"+
-                "?obs a ssn:Observation."+
-                "?obs ssn:observedBy ?s ."+
-                "?s rdf:type ?type ."+
-                "optional{"+
-                "?s iot-lite:isSubSystemOf ?sys ."+
-                "?sys ssn:hasDeployment ?Dep ."+
-                "}"+
-                "VALUES ?Dep {"+
-                  "<"+dep+">"+
-                "} ."+
-                "?obs ssn:observationSamplingTime ?time ."+
-                "?time time:inXSDDateTime ?t ."+
-                "?obs ssn:observationResult ?result ."+
-                "?result ssn:hasValue ?value ."+
-                "?value dul:hasDataValue ?num ."+
-                "?s iot-lite:hasQuantityKind ?qKURI ."+
-                "?qKURI rdf:type ?qk ."+
-                "?s iot-lite:hasUnit ?unitURI ."+
-                "?unitURI rdf:type ?unit ."+
-              "}ORDER BY ?t";
-              console.log(postData);
-            var options = {
-              host: 'platform.fiesta-iot.eu',
-              path: '/iot-registry/api/queries/execute/global',
-              method: 'POST',
-              headers: {
-                    'Content-Type': 'text/plain',
-                    'Content-Length': Buffer.byteLength(postData),
-                    'Accept': 'application/json',
-                    'iPlanetDirectoryPro': token
-              },
-              timeout: 600000//10 minutos
-            };
-            //var timeObs = [];//fecha de las observaciones
-            //var measures = [];//medidas de las observaciones
-            var request = https.request(options, function(response) {
-              body="";
-              console.log('STATUS /observations: ' + response.statusCode);
-              if(response.statusCode === 401){
-                //Token no valido unautorizado
-                console.log("UNAUTORIZADO");
-              }
-              else{
-                console.log('HEADERS /observations: ' + JSON.stringify(response.headers));
-                response.on('data', function(chunk) {
-                  //Capturar esto para ver si hay error y transmitir a la pagina un error en el servidor y guardar logs
-                  body+=chunk;
-                  //console.log("CHUNK "+chunk);
-                }).on('end', function() {
-                  if(response.statusCode===200){
-                    var JsonChunk = JSON.parse(body);
-                    var items = JsonChunk.items;
-                    //Extraer todas las observaciones que me sirven
-                    if(items.length==0){
-                      //No hay observaciones de este sensor
-                      console.log("VACIOOOOOO");
-                    }
-                    else{
-                      console.log("LLEEEENOO Medidas Observacion");
-                      for(i=0;i<items.length;i++){
-                        if(items[i].s!=undefined){
-                          if(items[i].sys){
-                            var flagObs = false;//flag para comprobar si hay un systema nuevo
-                            for(var j=0;j<sys.length;j++){
-                              if(items[i].sys==sys[j]){
-                                flagObs=true;
-                                //console.log("Hay un sistema que coincide");
-                                for(var k=0;k<subsystems[j].length;k++){
-                                  if(subsystems[j][k]==items[i].s){
-                                    //console.log("Agregar medida");
-                                    if(measureSubs[j][k]=="NODATA"){
-                                      console.log("--Medida agregada");
-                                      measureSubs[j][k]=Number(items[i].num.substring(0,items[i].num.indexOf("^^")));
-                                    }
-                                    break;
-                                  }
-                                  if((k+1)==subsystems[j].length){//solo lo añade al final cuando ha comprobado que no esta ya
-                                    allD++;
-                                    console.log("Nuevo sensor en Systema existente"+j+"-"+k);
-                                    subsystems[j].push(items[i].s);
-                                    typeSubs[j].push(items[i].type.substring(items[i].type.lastIndexOf("#")+1));
-                                    
-                                    if(items[i].endp!=undefined){
-                                      endSubs[j].push(items[i].endp.substring(0,items[i].endp.lastIndexOf("^")-1));
-                                    }
-                                    else{
-                                      endSubs[j].push("NODATA");
-                                    }
-                                    if(items[i].qk!=undefined){
-                                      qkSubs[j].push(items[i].qk.substring(items[i].qk.lastIndexOf("#")+1));
-                                    }
-                                    else{
-                                      qkSubs[j].push("NODATA");
-                                    }
-                                    if(items[i].unit!=undefined){
-                                      unitSubs[j].push(items[i].unit.substring(items[i].unit.lastIndexOf("#")+1));
-                                    }
-                                    else{
-                                      unitSubs[j].push("NODATA");
-                                    }
-                                    if(items[i].lat!=undefined&&items[i].long!=undefined){
-                                      var pos ={
-                                        "lat":Number(items[i].lat.substring(0,items[i].lat.lastIndexOf("^")-1)),
-                                        "long":Number(items[i].long.substring(0,items[i].long.lastIndexOf("^")-1))
-                                      }
-                                      positionSubs[j].push(pos);
-                                    }
-                                    else{
-                                      positionSubs[j].push("NODATA");
-                                    }
-                                    measureSubs[j].push(Number(items[i].num.substring(0,items[i].num.indexOf("^^"))));
-                                  }
-                                }
-                              }
-                            }
-                            if(!flagObs){//Si no ha encontrado ningún sistema entonces tendra que añadir uno nuevo
-                              console.log("Sistema nuevo - Sensor nuevo");
-                              sys.push(items[i].sys);
-                              var auxS = [];
-                              var auxT = [];
-                              var auxE = [];
-                              var auxQ = [];
-                              var auxU = [];
-                              var auxP = [];
-                              var auxM = [];
-                              allD++;
-                              auxS.push(items[i].s);
-                              subsystems.push(auxS);
-                              auxT.push(items[i].type.substring(items[i].type.lastIndexOf("#")+1));
-                              typeSubs.push(auxT);
-                              if(items[i].endp!=undefined){
-                                auxE.push(items[i].endp.substring(0,items[i].endp.lastIndexOf("^")-1));
-                                endSubs.push(auxE);
-                              }
-                              else{
-                                auxE.push("NODATA");
-                                endSubs.push(auxE);
-                              }
-                              if(items[i].qK!=undefined){
-                                auxQ.push(items[i].qK.substring(items[i].qK.lastIndexOf("#")+1));
-                                akSubs.push(auxQ);
-                              }
-                              else{
-                                auxQ.push("NODATA");
-                                qkSubs.push(auxQ);
-                              }
-                              if(items[i].unit!=undefined){
-                                auxU.push(items[i].unit.substring(items[i].unit.lastIndexOf("#")+1));
-                                unitSubs.push(auxU);
-                              }
-                              else{
-                                auxU.push("NODATA");
-                                unitSubs.push(auxU);
-                              }
-                              if(items[i].lat!=undefined&&items[i].long!=undefined){
-                                var pos ={
-                                  "lat":Number(items[i].lat.substring(0,items[i].lat.lastIndexOf("^")-1)),
-                                  "long":Number(items[i].long.substring(0,items[i].long.lastIndexOf("^")-1))
-                                }
-                                auxP.push(pos);
-                                positionSubs.push(auxP);
-                              }
-                              else{
-                                auxP.push("NODATA");
-                                positionSubs.push(auxP);
-                              }
-                              //NUEVO
-                              auxM.push(Number(items[i].num.substring(0,items[i].num.indexOf("^^"))));
-                              measureSubs.push(auxM);
-                            }
-                          }//No tiene sistema
-                          else{
-                            var flagObs=false;
-                            for(var j=0;j<devices.length;j++){
-                              if(items[i].s==devices[j]){
-                                if(measures[j]=="NODATA"){
-                                  console.log("--Medida agregada device sin systema");
-                                  measures[j]=Number(items[i].num.substring(0,items[i].num.indexOf("^^")));
-                                }
-                                flagObs=true;
-                              }
-                            }
-                            if(!flagObs){
-                              console.log("Hay un device nuevo sin sistema");
-                              allD++;
-                              //Aqui poner el sensor directamente en uno libre sin Systemas
-                              devices.push(items[i].s);
-                              typeDev.push(items[i].type.substring(items[i].type.lastIndexOf("#")+1));
-                              if(items[i].endp!=undefined){
-                                 endpoints.push(items[i].endp.substring(0,items[i].endp.lastIndexOf("^")-1));
-                              }
-                              else{
-                                endpoints.push("NODATA");
-                              }
-                              if(items[i].qK!=undefined){
-                                qks.push(items[i].qK.substring(items[i].qK.lastIndexOf("#")+1));
-                              }
-                              else{
-                                qks.push("NODATA");
-                              }
-                              if(items[i].unit!=undefined){
-                                units.push(items[i].unit.substring(items[i].unit.lastIndexOf("#")+1));
-                              }
-                              else{
-                                units.push("NODATA");
-                              }
-                              if(items[i].lat!=undefined&&items[i].long!=undefined){
-                                var pos ={
-                                  "lat":Number(items[i].lat.substring(0,items[i].lat.lastIndexOf("^")-1)),
-                                  "long":Number(items[i].long.substring(0,items[i].long.lastIndexOf("^")-1))
-                                }
-                                positions.push(pos);
-                              }
-                              else{
-                                positions.push("NODATA");
-                              }
-                              //NUEVO
-                              measures.push(Number(items[i].num.substring(0,items[i].num.indexOf("^^"))));
-                            }
-                          }
-                        }
-                      }
-                    }
-                  }
-                  console.log("Devices"+allD);
-                  console.log("Length of sys"+sys.length);//Misma longitud que el de abajo
-                  console.log("Length of sys in subsystems"+subsystems.length);
-                  console.log("Length of sys in Typesubsystems"+subsystems.length);
-                  res.render('devices', {
-                    title: 'Devices of Deployment '+nameDep,
-                    nameDep: nameDep,
-                    devices: devices,//enlace entero
-                    typeDev: typeDev,
-                    endpoints: endpoints,
-                    qks: qks,
-                    units: units,
-                    positions,
-                    measures,
-                    //devs: devs,//id despues de la /
-                    sys: sys,
-                    subsystems: subsystems,
-                    typeSubs: typeSubs,
-                    endSubs: endSubs,
-                    qkSubs: qkSubs,
-                    unitSubs: unitSubs,
-                    positionSubs,
-                    measureSubs,
-                    allD: allD,
-                    APIKeyGMJS: APIKeyGMJS,
-                    dep:dep
-                  });
-                })
-              }
-            });
-            request.on('error', function(e) {
-              console.log("ERROR "+e.message);
-            });
-            request.write(postData);
-            request.end();
-          });
-        }
-      });
-      request.on('error', function(e) {
-        console.log("ERROR "+e.message);
-      });  
-      request.end();
-
-      db.close();
-    });
-  });
-};*/
 exports.readMongoDevofDep = function(req,res,next){
   /*Para coger los parametros de la url es con req.params.:id
     Para coger los parametros de un formulario con post req.body.id
     Para coger los parametros de un formulario por get(en la url) con req.query.id
   */
   var allD=0;
-  var nameDep = req.body.nDep;//para ver que se envia desde el formulario
+  var nameDep = req.body.nDep; //para ver que se envia desde el formulario
   var dep = req.body.dep;
   var preUrl = req.body.preUrl;
   console.log("Nombre del deployment seleccionado:"+nameDep);
@@ -1791,863 +949,864 @@ exports.readMongoDevofDep = function(req,res,next){
   dep = preUrl + dep;
   
   MongoClient.connect(newurlMongdb, function (err, db) {
-  /*db.open(function (err, db) {
-          if (err){ 
-            console.log("ERROR "+err);
-            db.close();
-          }*/
-          var gfs = Grid(db, mongo);
-          //console.log(gfs);
-          gfs.collection('fismos');
-          gfs.files.find().toArray(function (err, files) {
-            if(err){console.log("ERROR "+err);}
-            else{
-              console.log(files);
-              var data = "";
-
-              var readstream = gfs.createReadStream({
-                filename: files[0].filename
-              });
-
-              readstream.on("data", function(chunk){
-                data+=chunk.toString();
-              });
-
-              readstream.on("end", function(){
-      //LA FIESTA VA AQUI
-      var dataJson = JSON.parse(/*fismoArray[0].*/data);
-      var items = dataJson.items;
-      var devices = [];//dispositivos que son su propio systema
-      var typeDev = [];
-      var endpoints = [];
-      var qks = [];
-      var units = [];
-      var positions = [];
-      var measures = [];
-      //var devs = [];
-      //Array de systemas
-      var sys = [];
-      //Array de array donde van los subsistemas
-      var subsystems = [];
-      var typeSubs = [];
-      var endSubs = [];
-      var qkSubs = [];
-      var unitSubs = [];
-      var positionSubs = [];
-      var measureSubs =[];
-      //Extraer todos los devices que me sirven
-      var i = 0;
-      var numSys = 0;
-      var c=0;
-      for(i;i<items.length;i++){
-      //if(items[i].dev.substring(0,d.lastIndexOf("/"))!="https://platform.fiesta-iot.eu/iot-registry/api/observations"){
-        if(items[i].Dep!=undefined/* || items[i].DepofS!=undefined*/){
-        //Si el device no tiene Depl o un systema con Deplo no sirve el device
-          if(items[i].Dep==dep/* || items[i].DepofS==dep*/){//Que el deployment sea el que se ha seleccionado
-            //Los dev que tienen un sys se añaden en otro momento
-            if(items[i].dev!=undefined){//hay subD o no
-              //if(items[i].type!="http://purl.oclc.org/NET/ssnx/ssn#Device"){
-                //Solo leo los dispositivos que son del tipo Device osea systemas
-                var tNew ="";
-                if(items[i].type.substring(items[i].type.lastIndexOf("#")+1)=="Device"){
-                  //typeDev.push("System");
-                  //console.log("Valor de i "+i);
-                  sys.push(items[i].dev/*.substring(items[i].dev.lastIndexOf("/")+1)*/);
-                  var auxS = [];
-                  var auxT = [];
-                  var auxE = [];
-                  var auxqK = [];
-                  var auxU = [];
-                  var auxP = [];
-                  var auxM = [];
-                  //Agregar aqui PLATFORM con localizacion
-                  //Hay Subsystemas o no
-                  if(items[i].subD!=undefined){
-                    var j=0;
-                    var sensorN="";
-                    var sensorN1="";
-                    var flagNuevo = false;
-                    //Busca los subsystemas que tiene ese device y los mete en un array
-                    for(j;j+i<items.length;j++){
-                      if(items[i+j].dev==items[i].dev){
-                        var sensorN1=items[i+j].subD;
-                        if(sensorN==""){
-                          sensorN=items[i+j].subD;
-                          flagNuevo=true;
-                        }
-                        else{
-                          if(sensorN!=sensorN1){
-                            sensorN=items[i+j].subD;
-                            flagNuevo=true;
-                          }else{
-                            flagNuevo=false;
-                          }
-                        }
-                        if(flagNuevo){
-                          auxS.push(items[i+j].subD/*.substring(items[i+j].subD.lastIndexOf("/")+1)*/);
-                          auxT.push(items[i+j].typeSubD.substring(items[i+j].typeSubD.lastIndexOf("#")+1));
-                          //NUMERO DEVICES
-                          allD++;
-                          if(items[i+j].endp/*SD*/!=undefined){
-                            auxE.push(items[i+j].endp/*SD*/.substring(0,items[i+j].endp/*SD*/.lastIndexOf("^")-1));
-                          }
-                          else{
-                            auxE.push("NODATA");
-                          }
-                          //Puede que haya que hacer sentencia if else pero en teoria todos los devices tienen un qk y unit
-                          if(items[i+j].qK/*SD*/!=undefined){
-                            auxqK.push(items[i+j].qK/*SD*/.substring(items[i+j].qK/*SD*/.lastIndexOf("#")+1));
-                          }
-                          else{
-                            auxqK.push("NODATA");
-                          }
-                          if(items[i+j].unit/*SD*/!=undefined){
-                            auxU.push(items[i+j].unit/*SD*/.substring(items[i+j].unit/*SD*/.lastIndexOf("#")+1));
-                          }
-                          else{
-                            auxU.push("NODATA");
-                          }
-                          if(items[i+j].lat!=undefined&&items[i+j].long!=undefined){
-                            var pos ={
-                              "lat":Number(items[i+j].lat.substring(0,items[i+j].lat.lastIndexOf("^")-1)),
-                              "long":Number(items[i+j].long.substring(0,items[i+j].long.lastIndexOf("^")-1))
-                            }
-                            auxP.push(pos);
-                          }
-                          else{
-                            auxP.push("NODATA");
-                          }
-                          //NUEVO
-                          if(items[i+j].num!=undefined){
-                            auxM.push(Number(items[i+j].num.substring(0,items[i+j].num.indexOf("^^"))));
-                          }
-                          else{
-                            auxM.push("NODATA"); 
-                          } 
-                        }else{c++;console.log("No se añade "+c);}  
-                      }
-                      else{
-                        //console.log("VALOR DE I"+i);
-                        //console.log("VALOR DE I"+j);
-                        //console.log("Valor i "+i+" Valor j "+j);
-                        i=i+j-1;//Continua el valor de i mas los subsystemas agregados con valor j
-                        //Ya que estan ordenados por dev, y aparece el mismo system con diferentes
-                        //subsystem en cada siguiente iteracción
-                        //console.log("VALOR DE I2"+i);
-                        break;
-                      }
-                    }
-                    
-                  }
-                  //Systemas sin ningun subsystem
-                  else{//Deberia diferenciar entre El systema y subsistemas(los unicos que se ven ahora)
-                    auxS.push(items[i].dev/*.substring(items[i].dev.lastIndexOf("/")+1)*/);
-                    auxT.push(items[i].type.substring(items[i].type.lastIndexOf("#")+1));
-                    //allD++;
-                    if(items[i].endp!=undefined){
-                      auxE.push(items[i].endp.substring(0,items[i].endp.lastIndexOf("^")-1));
-                    }
-                    else{
-                      auxE.push("NODATA");
-                    }
-
-                    if(items[i].qK!=undefined){
-                      auxqK.push(items[i].qK.substring(items[i].qK.lastIndexOf("#")+1));
-                    }
-                    else{
-                      auxqK.push("NODATA");
-                    }
-                    if(items[i].unit!=undefined){
-                      auxU.push(items[i].unit.substring(items[i].unit.lastIndexOf("#")+1));
-                    }
-                    else{
-                      auxU.push("NODATA");
-                    }             
-                    if(items[i].lat!=undefined&&items[i].long!=undefined){
-                      var pos ={
-                        "lat":Number(items[i].lat.substring(0,items[i].lat.lastIndexOf("^")-1)),
-                        "long":Number(items[i].long.substring(0,items[i].long.lastIndexOf("^")-1))
-                      }
-                      auxP.push(pos);
-                    }
-                    else{
-                      auxP.push("NODATA");
-                    }
-                    //NUEVO
-                    if(items[i].num!=undefined){
-                      auxM.push(Number(items[i].num.substring(0,items[i].num.indexOf("^^"))));
-                    }
-                    else{
-                      auxM.push("NODATA"); 
-                    }
-                    
-                  }
-                  /*if(numSys==0){
-                    subsystems[0].push(auxS);
-                    typeSubs[0].push(auxT);  
-                  }
-                  else{*/
-                    subsystems.push(auxS);
-                    typeSubs.push(auxT);
-                    endSubs.push(auxE);
-                    qkSubs.push(auxqK);
-                    unitSubs.push(auxU);
-                    positionSubs.push(auxP);
-                    //NUEVO
-                    measureSubs.push(auxM);
-                  //}
-                  numSys++;
-                  
-                }
-                else{//Device == SYSTEM
-                  var sensorN="";
-                  var sensorN1="";
-                  var flagNuevo = false;
-                  var sensorN1=items[i].dev;
-                  if(sensorN==""){
-                    sensorN=items[i].dev;
-                    flagNuevo=true;
-                  }
-                  else{
-                    if(sensorN!=sensorN1){
-                      flagNuevo=true;
-                    }else{
-                      flagNuevo=false;
-                    }
-                  }
-                  if(flagNuevo){
-                    typeDev.push(items[i].type.substring(items[i].type.lastIndexOf("#")+1));
-                    //Todo el enlace
-                    devices.push(items[i].dev);
-                    allD++;
-                    //Solo el número identificativo despues de el ultimo /
-                    //devs.push(items[i].dev.substring(items[i].dev.lastIndexOf("/")+1));
-                    if(items[i].endp!=undefined){
-                        endpoints.push(items[i].endp.substring(0,items[i].endp.lastIndexOf("^")-1));
-                      }
-                    else{
-                      endpoints.push("NODATA");
-                    }
-                    if(items[i].qK!=undefined){
-                      qks.push(items[i].qK.substring(items[i].qK.lastIndexOf("#")+1));
-                    }
-                    else{
-                      qks.push("NODATA");
-                    }
-                    if(items[i].unit!=undefined){
-                      units.push(items[i].unit.substring(items[i].unit.lastIndexOf("#")+1));
-                    }
-                    else{
-                      units.push("NODATA");
-                    }
-                    if(items[i].lat!=undefined&&items[i].long!=undefined){
-                      var pos ={
-                        "lat":Number(items[i].lat.substring(0,items[i].lat.lastIndexOf("^")-1)),
-                        "long":Number(items[i].long.substring(0,items[i].long.lastIndexOf("^")-1))
-                      }
-                      positions.push(pos);
-                    }
-                    else{
-                      positions.push("NODATA");
-                    }
-                    if(items[i].num!=undefined){
-                      auxM.push(Number(items[i].num.substring(0,items[i].num.indexOf("^^"))));
-                    }
-                    else{
-                      auxM.push("NODATA"); 
-                    }
-                  }
-                }
-                
-              //}
-            }
-            /*else{//sale del for por que ya no hay mas dev
-              break;
-            }*/
-          }
-        }
+    if(err){
+      console.error("ERROR "+err);
+      readFileDevofDep(req, res, next);
+      if(db){db.close();}
+      return;
+    }
+    var gfs = Grid(db, mongo);
+    gfs.collection('fismos');
+    gfs.files.find().toArray(function (err, files) {
+      if(err){
+        console.error("ERROR "+err);
+        readFileDevofDep(req,res,next);
+        db.close();
+        return;
       }
-      console.log("Devices "+allD);
-      console.log("Length of sys "+sys.length);//Misma longitud que el de abajo
-      console.log("Length of sys in subsystems "+subsystems.length);
-      console.log("Length of sys in Typesubsystems "+subsystems.length);
-      
-      //NUEVO para poder asegurar el máximo de dispositivos encontrados se busca tambien por los dispositivos de las obsevations
-      /*for(i=0;i<items.length;i++){
-        if(items[i].Dep!=undefined){
-          if(items[i].Dep==dep){
-            if(items[i].dev!=undefined){
-              if(items[i].sys){
-                var flagObs = false;//flag para comprobar si hay un systema nuevo
-                for(var j=0;j<sys.length;j++){
-                  if(items[i].sys==sys[j]){
-                    flagObs=true;
-                    //console.log("Hay un sistema que coincide");
-                    for(var k=0;k<subsystems[j].length;k++){
-                      if(subsystems[j][k]==items[i].dev){
-                        break;
-                      }
-                      if((k+1)==subsystems[j].length){//solo lo añade al final cuando ha comprobado que no esta ya
-                        console.log("Device Nuevo - Systema existente");
-                        allD++;
-                        subsystems[j].push(items[i].dev);
-                        typeSubs[j].push(items[i].typeS.substring(items[i].typeS.lastIndexOf("#")+1));
+      else{
+        console.log(files);
+        var data = "";
+
+        var readstream = gfs.createReadStream({
+          filename: files[0].filename
+        });
+
+        readstream.on("data", function(chunk){
+          data+=chunk.toString();
+        });
+
+        readstream.on("end", function(){
+          //LA FIESTA VA AQUI
+          var dataJson = JSON.parse(/*fismoArray[0].*/data);
+          var items = dataJson.items;
+          var devices = [];//dispositivos que son su propio systema
+          var typeDev = [];
+          var endpoints = [];
+          var qks = [];
+          var units = [];
+          var positions = [];
+          var measures = [];
+          //var devs = [];
+          //Array de systemas
+          var sys = [];
+          //Array de array donde van los subsistemas
+          var subsystems = [];
+          var typeSubs = [];
+          var endSubs = [];
+          var qkSubs = [];
+          var unitSubs = [];
+          var positionSubs = [];
+          var measureSubs =[];
+          //Extraer todos los devices que me sirven
+          var i = 0;
+          var numSys = 0;
+          var c=0;
+          for(i;i<items.length;i++){
+          //if(items[i].dev.substring(0,d.lastIndexOf("/"))!="https://platform.fiesta-iot.eu/iot-registry/api/observations"){
+            if(items[i].Dep!=undefined/* || items[i].DepofS!=undefined*/){
+            //Si el device no tiene Depl o un systema con Deplo no sirve el device
+              if(items[i].Dep==dep/* || items[i].DepofS==dep*/){//Que el deployment sea el que se ha seleccionado
+                //Los dev que tienen un sys se añaden en otro momento
+                if(items[i].dev!=undefined){//hay subD o no
+                  //if(items[i].type!="http://purl.oclc.org/NET/ssnx/ssn#Device"){
+                    //Solo leo los dispositivos que son del tipo Device osea systemas
+                    var tNew ="";
+                    if(items[i].type.substring(items[i].type.lastIndexOf("#")+1)=="Device"){
+                      //typeDev.push("System");
+                      //console.log("Valor de i "+i);
+                      sys.push(items[i].dev/*.substring(items[i].dev.lastIndexOf("/")+1)*/);
+                      var auxS = [];
+                      var auxT = [];
+                      var auxE = [];
+                      var auxqK = [];
+                      var auxU = [];
+                      var auxP = [];
+                      var auxM = [];
+                      //Agregar aqui PLATFORM con localizacion
+                      //Hay Subsystemas o no
+                      if(items[i].subD!=undefined){
+                        var j=0;
+                        var sensorN="";
+                        var sensorN1="";
+                        var flagNuevo = false;
+                        //Busca los subsystemas que tiene ese device y los mete en un array
+                        for(j;j+i<items.length;j++){
+                          if(items[i+j].dev==items[i].dev){
+                            var sensorN1=items[i+j].subD;
+                            if(sensorN==""){
+                              sensorN=items[i+j].subD;
+                              flagNuevo=true;
+                            }
+                            else{
+                              if(sensorN!=sensorN1){
+                                sensorN=items[i+j].subD;
+                                flagNuevo=true;
+                              }else{
+                                flagNuevo=false;
+                              }
+                            }
+                            if(flagNuevo){
+                              auxS.push(items[i+j].subD/*.substring(items[i+j].subD.lastIndexOf("/")+1)*/);
+                              auxT.push(items[i+j].typeSubD.substring(items[i+j].typeSubD.lastIndexOf("#")+1));
+                              //NUMERO DEVICES
+                              allD++;
+                              if(items[i+j].endp/*SD*/!=undefined){
+                                auxE.push(items[i+j].endp/*SD*/.substring(0,items[i+j].endp/*SD*/.lastIndexOf("^")-1));
+                              }
+                              else{
+                                auxE.push("NODATA");
+                              }
+                              //Puede que haya que hacer sentencia if else pero en teoria todos los devices tienen un qk y unit
+                              if(items[i+j].qK/*SD*/!=undefined){
+                                auxqK.push(items[i+j].qK/*SD*/.substring(items[i+j].qK/*SD*/.lastIndexOf("#")+1));
+                              }
+                              else{
+                                auxqK.push("NODATA");
+                              }
+                              if(items[i+j].unit/*SD*/!=undefined){
+                                auxU.push(items[i+j].unit/*SD*/.substring(items[i+j].unit/*SD*/.lastIndexOf("#")+1));
+                              }
+                              else{
+                                auxU.push("NODATA");
+                              }
+                              if(items[i+j].lat!=undefined&&items[i+j].long!=undefined){
+                                var pos ={
+                                  "lat":Number(items[i+j].lat.substring(0,items[i+j].lat.lastIndexOf("^")-1)),
+                                  "long":Number(items[i+j].long.substring(0,items[i+j].long.lastIndexOf("^")-1))
+                                }
+                                auxP.push(pos);
+                              }
+                              else{
+                                auxP.push("NODATA");
+                              }
+                              //NUEVO
+                              if(items[i+j].num!=undefined){
+                                auxM.push(Number(items[i+j].num.substring(0,items[i+j].num.indexOf("^^"))));
+                              }
+                              else{
+                                auxM.push("NODATA"); 
+                              } 
+                            }else{c++;console.log("No se añade "+c);}  
+                          }
+                          else{
+                            //console.log("VALOR DE I"+i);
+                            //console.log("VALOR DE I"+j);
+                            //console.log("Valor i "+i+" Valor j "+j);
+                            i=i+j-1;//Continua el valor de i mas los subsystemas agregados con valor j
+                            //Ya que estan ordenados por dev, y aparece el mismo system con diferentes
+                            //subsystem en cada siguiente iteracción
+                            //console.log("VALOR DE I2"+i);
+                            break;
+                          }
+                        }
                         
+                      }
+                      //Systemas sin ningun subsystem
+                      else{//Deberia diferenciar entre El systema y subsistemas(los unicos que se ven ahora)
+                        auxS.push(items[i].dev/*.substring(items[i].dev.lastIndexOf("/")+1)*/);
+                        auxT.push(items[i].type.substring(items[i].type.lastIndexOf("#")+1));
+                        //allD++;
                         if(items[i].endp!=undefined){
-                          endSubs[j].push(items[i].endp.substring(0,items[i].endp.lastIndexOf("^")-1));
+                          auxE.push(items[i].endp.substring(0,items[i].endp.lastIndexOf("^")-1));
                         }
                         else{
-                          endSubs[j].push("NODATA");
+                          auxE.push("NODATA");
                         }
+
                         if(items[i].qK!=undefined){
-                          qkSubs[j].push(items[i].qK.substring(items[i].qK.lastIndexOf("#")+1));
+                          auxqK.push(items[i].qK.substring(items[i].qK.lastIndexOf("#")+1));
                         }
                         else{
-                          qkSubs[j].push("NODATA");
+                          auxqK.push("NODATA");
                         }
                         if(items[i].unit!=undefined){
-                          unitSubs[j].push(items[i].unit.substring(items[i].unit.lastIndexOf("#")+1));
+                          auxU.push(items[i].unit.substring(items[i].unit.lastIndexOf("#")+1));
                         }
                         else{
-                          unitSubs[j].push("NODATA");
+                          auxU.push("NODATA");
+                        }             
+                        if(items[i].lat!=undefined&&items[i].long!=undefined){
+                          var pos ={
+                            "lat":Number(items[i].lat.substring(0,items[i].lat.lastIndexOf("^")-1)),
+                            "long":Number(items[i].long.substring(0,items[i].long.lastIndexOf("^")-1))
+                          }
+                          auxP.push(pos);
+                        }
+                        else{
+                          auxP.push("NODATA");
+                        }
+                        //NUEVO
+                        if(items[i].num!=undefined){
+                          auxM.push(Number(items[i].num.substring(0,items[i].num.indexOf("^^"))));
+                        }
+                        else{
+                          auxM.push("NODATA"); 
+                        }
+                        
+                      }
+                      /*if(numSys==0){
+                        subsystems[0].push(auxS);
+                        typeSubs[0].push(auxT);  
+                      }
+                      else{*/
+                        subsystems.push(auxS);
+                        typeSubs.push(auxT);
+                        endSubs.push(auxE);
+                        qkSubs.push(auxqK);
+                        unitSubs.push(auxU);
+                        positionSubs.push(auxP);
+                        //NUEVO
+                        measureSubs.push(auxM);
+                      //}
+                      numSys++;
+                      
+                    }
+                    else{//Device == SYSTEM
+                      var sensorN="";
+                      var sensorN1="";
+                      var flagNuevo = false;
+                      var sensorN1=items[i].dev;
+                      if(sensorN==""){
+                        sensorN=items[i].dev;
+                        flagNuevo=true;
+                      }
+                      else{
+                        if(sensorN!=sensorN1){
+                          flagNuevo=true;
+                        }else{
+                          flagNuevo=false;
+                        }
+                      }
+                      if(flagNuevo){
+                        typeDev.push(items[i].type.substring(items[i].type.lastIndexOf("#")+1));
+                        //Todo el enlace
+                        devices.push(items[i].dev);
+                        allD++;
+                        //Solo el número identificativo despues de el ultimo /
+                        //devs.push(items[i].dev.substring(items[i].dev.lastIndexOf("/")+1));
+                        if(items[i].endp!=undefined){
+                            endpoints.push(items[i].endp.substring(0,items[i].endp.lastIndexOf("^")-1));
+                          }
+                        else{
+                          endpoints.push("NODATA");
+                        }
+                        if(items[i].qK!=undefined){
+                          qks.push(items[i].qK.substring(items[i].qK.lastIndexOf("#")+1));
+                        }
+                        else{
+                          qks.push("NODATA");
+                        }
+                        if(items[i].unit!=undefined){
+                          units.push(items[i].unit.substring(items[i].unit.lastIndexOf("#")+1));
+                        }
+                        else{
+                          units.push("NODATA");
                         }
                         if(items[i].lat!=undefined&&items[i].long!=undefined){
                           var pos ={
                             "lat":Number(items[i].lat.substring(0,items[i].lat.lastIndexOf("^")-1)),
                             "long":Number(items[i].long.substring(0,items[i].long.lastIndexOf("^")-1))
                           }
-                          positionSubs[j].push(pos);
+                          positions.push(pos);
                         }
                         else{
-                          positionSubs[j].push("NODATA");
+                          positions.push("NODATA");
                         }
-                        //NUEVO
                         if(items[i].num!=undefined){
-                          measureSubs[j].push(items[i].num);
+                          auxM.push(Number(items[i].num.substring(0,items[i].num.indexOf("^^"))));
                         }
                         else{
-                          measureSubs[j].push("NODATA");
+                          auxM.push("NODATA"); 
                         }
                       }
                     }
-                  }
+                    
+                  //}
                 }
-                if(!flagObs){//Si no ha encontrado ningún sistema entonces tendra que añadir uno nuevo
-                  console.log("Sistema nuevo - Device Nuevo");
-                  sys.push(items[i].sys);
-                  var auxS = [];
-                  var auxT = [];
-                  var auxE = [];
-                  var auxQ = [];
-                  var auxU = [];
-                  var auxP = [];
-                  var auxM = [];
-                  allD++;
-                  auxS.push(items[i].dev);
-                  subsystems.push(auxS);
-                  auxT.push(items[i].typeS.substring(items[i].typeS.lastIndexOf("#")+1));
-                  typeSubs.push(auxT);
-
-                  if(items[i].endp!=undefined){
-                    auxE.push(items[i].endp.substring(0,items[i].endp.lastIndexOf("^")-1));
-                    endSubs.push(auxE);
-                  }
-                  else{
-                    auxE.push("NODATA");
-                    endSubs.push(auxE);
-                  }
-                  if(items[i].qK!=undefined){
-                    auxQ.push(items[i].qK.substring(items[i].qK.lastIndexOf("#")+1));
-                    qkSubs.push(auxQ);
-                  }
-                  else{
-                    auxQ.push("NODATA");
-                    qkSubs.push(auxQ);
-                  }
-                  if(items[i].unit!=undefined){
-                    auxU.push(items[i].unit.substring(items[i].unit.lastIndexOf("#")+1));
-                    unitSubs.push(auxU);
-                  }
-                  else{
-                    auxU.push("NODATA");
-                    unitSubs.push(auxU);
-                  }
-                  if(items[i].lat!=undefined&&items[i].long!=undefined){
-                    var pos ={
-                      "lat":Number(items[i].lat.substring(0,items[i].lat.lastIndexOf("^")-1)),
-                      "long":Number(items[i].long.substring(0,items[i].long.lastIndexOf("^")-1))
-                    }
-                    auxP.push(pos);
-                    positionSubs.push(auxP);
-                  }
-                  else{
-                    auxP.push("NODATA");
-                    positionSubs.push(auxP);
-                  }
-                  //NUEVO
-                  if(items[i].num!=undefined){
-                    auxM.push();
-                    measureSubs.push(auxM);
-                  }
-                  else{
-                    auxM.push("NODATA");
-                    measureSubs.push(auxM);
-                  }
-                  
-                }
-              }//No tiene sistema
-              else{
-                var flagObs=false;
-                for(var j=0;j<devices.length;j++){
-                  if(items[i].dev==devices[j]){
-                    flagObs=true;
-                  }
-                }
-                if(!flagObs){
-                  console.log("Device nuevo suelto");
-                  allD++;
-                  //Aqui poner el sensor directamente en uno libre sin Systemas
-                  devices.push(items[i].dev);
-                  typeDev.push(items[i].typeS.substring(items[i].typeS.lastIndexOf("#")+1));
-                  if(items[i].endp!=undefined){
-                     endpoints.push(items[i].endp.substring(0,items[i].endp.lastIndexOf("^")-1));
-                  }
-                  else{
-                    endpoints.push("NODATA");
-                  }
-                  if(items[i].qK!=undefined){
-                    qks.push(items[i].qK.substring(items[i].qK.lastIndexOf("#")+1));
-                  }
-                  else{
-                    qks.push("NODATA");
-                  }
-                  if(items[i].unit!=undefined){
-                    units.push(items[i].unit.substring(items[i].unit.lastIndexOf("#")+1));
-                  }
-                  else{
-                    units.push("NODATA");
-                  }
-                  if(items[i].lat!=undefined&&items[i].long!=undefined){
-                    var pos ={
-                      "lat":Number(items[i].lat.substring(0,items[i].lat.lastIndexOf("^")-1)),
-                      "long":Number(items[i].long.substring(0,items[i].long.lastIndexOf("^")-1))
-                    }
-                    positions.push(pos);
-                  }
-                  else{
-                    positions.push("NODATA");
-                  }
-                  //NUEVO
-                  measures.push("NODATA");
-                }
+                /*else{//sale del for por que ya no hay mas dev
+                  break;
+                }*/
               }
             }
           }
-        }
-      }
-      console.log("Devices"+allD);
-      console.log("Length of sys"+sys.length);//Misma longitud que el de abajo
-      console.log("Length of sys in subsystems"+subsystems.length);
-      console.log("Length of sys in Typesubsystems"+subsystems.length);*/
-  
-      var token = '';
-      var body="";
-      var request = https.request(optionsToken, function(response) {
-        console.log('STATUS /token: ' + response.statusCode);
-        if(response.statusCode === 401){
-          console.info("UNAUTORIZADO TOKEN");
-          res.render('devices', {
-                    title: 'Devices of Deployment '+nameDep,
-                    nameDep: nameDep,
-                    devices: devices,//enlace entero
-                    typeDev: typeDev,
-                    endpoints: endpoints,
-                    qks: qks,
-                    units: units,
-                    positions,
-                    measures,
-                    //devs: devs,//id despues de la /
-                    sys: sys,
-                    subsystems: subsystems,
-                    typeSubs: typeSubs,
-                    endSubs: endSubs,
-                    qkSubs: qkSubs,
-                    unitSubs: unitSubs,
-                    positionSubs,
-                    measureSubs,
-                    allD: allD,
-                    APIKeyGMJS: APIKeyGMJS,
-                    dep:dep
-                  });
-        }
-        else{
-          console.log('HEADERS /token: ' + JSON.stringify(response.headers));
-          response.on('data', function(chunk) {
-            body+=chunk;
-          }).on('end', function() {
-            token = JSON.parse(body).tokenId;
-            //Obtener todas las observaciones que coincidan con un device
-            var postData =
-              "Prefix ssn: <http://purl.oclc.org/NET/ssnx/ssn#>"+
-              "Prefix iotlite: <http://purl.oclc.org/NET/UNIS/fiware/iot-lite#>"+ 
-              "Prefix dul: <http://www.loa.istc.cnr.it/ontologies/DUL.owl#>"+
-              "PREFIX rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#>"+
-              "Prefix geo: <http://www.w3.org/2003/01/geo/wgs84_pos#>"+
-              "Prefix time: <http://www.w3.org/2006/time#>"+
-              "Prefix m3-lite: <http://purl.org/iot/vocab/m3-lite#>"+
-              "Prefix xsd: <http://www.w3.org/2001/XMLSchema#>"+
-              "Prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>"+
-              "Prefix iot-lite: <http://purl.oclc.org/NET/UNIS/fiware/iot-lite#>"+
-              "SELECT ?obs ?s ?sys ?t ?num ?unit ?lat ?long ?qk ?type "+
-              "WHERE {"+
-                "?obs a ssn:Observation."+
-                "?obs ssn:observedBy ?s ."+
-                "?s rdf:type ?type ."+
-                "optional{"+
-                "?s iot-lite:isSubSystemOf ?sys ."+
-                "?sys ssn:hasDeployment ?Dep ."+
-                "}"+
-                "VALUES ?Dep {"+
-                  "<"+dep+">"+
-                "} ."+
-                "?obs ssn:observationSamplingTime ?time ."+
-                "?time time:inXSDDateTime ?t ."+
-                "?obs ssn:observationResult ?result ."+
-                "?result ssn:hasValue ?value ."+
-                "?value dul:hasDataValue ?num ."+
-                "?obs geo:location ?point ."+
-                "?point geo:lat ?lat ."+
-                "?point geo:long ?long ."+
-                "?s iot-lite:hasQuantityKind ?qKURI ."+
-                "?qKURI rdf:type ?qk ."+
-                "?s iot-lite:hasUnit ?unitURI ."+
-                "?unitURI rdf:type ?unit ."+
-              "}ORDER BY ?t";
-              console.log(postData);
-            var options = {
-              host: 'platform.fiesta-iot.eu',
-              path: '/iot-registry/api/queries/execute/global',
-              method: 'POST',
-              headers: {
-                    'Content-Type': 'text/plain',
-                    'Content-Length': Buffer.byteLength(postData),
-                    'Accept': 'application/json',
-                    'iPlanetDirectoryPro': token
-              },
-              timeout: 660000//10 minutos
-            };
-            //var timeObs = [];//fecha de las observaciones
-            //var measures = [];//medidas de las observaciones
-            var request = https.request(options, function(response) {
-              body="";
-              console.log('STATUS /observations: ' + response.statusCode);
-              if(response.statusCode === 401){
-                //Token no valido unautorizado
-                console.log("UNAUTORIZADO DEVANDOBS");
-                res.render('devices', {
-                    title: 'Devices of Deployment '+nameDep,
-                    nameDep: nameDep,
-                    devices: devices,//enlace entero
-                    typeDev: typeDev,
-                    endpoints: endpoints,
-                    qks: qks,
-                    units: units,
-                    positions,
-                    measures,
-                    //devs: devs,//id despues de la /
-                    sys: sys,
-                    subsystems: subsystems,
-                    typeSubs: typeSubs,
-                    endSubs: endSubs,
-                    qkSubs: qkSubs,
-                    unitSubs: unitSubs,
-                    positionSubs,
-                    measureSubs,
-                    allD: allD,
-                    APIKeyGMJS: APIKeyGMJS,
-                    dep:dep
-                  });
-              }
-              else{
-                console.log('HEADERS /observations: ' + JSON.stringify(response.headers));
-                response.on('data', function(chunk) {
-                  //Capturar esto para ver si hay error y transmitir a la pagina un error en el servidor y guardar logs
-                  body+=chunk;
-                  //console.log("CHUNK "+chunk);
-                }).on('end', function() {
-                  if(response.statusCode===200){
-                    var JsonChunk = JSON.parse(body);//cazar exceptino
-                    var items = JsonChunk.items;
-                    //Extraer todas las observaciones que me sirven
-                    if(items.length==0){
-                      //No hay observaciones de este sensor
-                      console.log("VACIOOOOOO");
-                    }
-                    else{
-                      console.log("LLEEEENOO Medidas Observacion");
-                      for(i=0;i<items.length;i++){
-                        if(items[i].s!=undefined){
-                          if(items[i].sys){
-                            var flagObs = false;//flag para comprobar si hay un systema nuevo
-                            for(var j=0;j<sys.length;j++){
-                              if(items[i].sys==sys[j]){
-                                flagObs=true;
-                                //console.log("Hay un sistema que coincide");
-                                for(var k=0;k<subsystems[j].length;k++){
-                                  if(subsystems[j][k]==items[i].s){
-                                    //console.log("Agregar medida");
-                                    if(measureSubs[j][k]=="NODATA"){
-                                      console.log("--Medida agregada");
-                                      measureSubs[j][k]=Number(items[i].num.substring(0,items[i].num.indexOf("^^")));
-                                    }
-                                    break;
-                                  }
-                                  if((k+1)==subsystems[j].length){//solo lo añade al final cuando ha comprobado que no esta ya
-                                    allD++;
-                                    console.log("Nuevo sensor en Systema existente"+j+"-"+k);
-                                    subsystems[j].push(items[i].s);
-                                    typeSubs[j].push(items[i].type.substring(items[i].type.lastIndexOf("#")+1));
-                                    
-                                    if(items[i].endp!=undefined){
-                                      endSubs[j].push(items[i].endp.substring(0,items[i].endp.lastIndexOf("^")-1));
-                                    }
-                                    else{
-                                      endSubs[j].push("NODATA");
-                                    }
-                                    if(items[i].qk!=undefined){
-                                      qkSubs[j].push(items[i].qk.substring(items[i].qk.lastIndexOf("#")+1));
-                                    }
-                                    else{
-                                      qkSubs[j].push("NODATA");
-                                    }
-                                    if(items[i].unit!=undefined){
-                                      unitSubs[j].push(items[i].unit.substring(items[i].unit.lastIndexOf("#")+1));
-                                    }
-                                    else{
-                                      unitSubs[j].push("NODATA");
-                                    }
-                                    if(items[i].lat!=undefined&&items[i].long!=undefined){
-                                      var pos ={
-                                        "lat":Number(items[i].lat.substring(0,items[i].lat.lastIndexOf("^")-1)),
-                                        "long":Number(items[i].long.substring(0,items[i].long.lastIndexOf("^")-1))
-                                      }
-                                      positionSubs[j].push(pos);
-                                    }
-                                    else{
-                                      positionSubs[j].push("NODATA");
-                                    }
-                                    measureSubs[j].push(Number(items[i].num.substring(0,items[i].num.indexOf("^^"))));
-                                  }
-                                }
-                              }
+          console.log("Devices "+allD);
+          console.log("Length of sys "+sys.length);//Misma longitud que el de abajo
+          console.log("Length of sys in subsystems "+subsystems.length);
+          console.log("Length of sys in Typesubsystems "+subsystems.length);
+          
+          //NUEVO para poder asegurar el máximo de dispositivos encontrados se busca tambien por los dispositivos de las obsevations
+          /*for(i=0;i<items.length;i++){
+            if(items[i].Dep!=undefined){
+              if(items[i].Dep==dep){
+                if(items[i].dev!=undefined){
+                  if(items[i].sys){
+                    var flagObs = false;//flag para comprobar si hay un systema nuevo
+                    for(var j=0;j<sys.length;j++){
+                      if(items[i].sys==sys[j]){
+                        flagObs=true;
+                        //console.log("Hay un sistema que coincide");
+                        for(var k=0;k<subsystems[j].length;k++){
+                          if(subsystems[j][k]==items[i].dev){
+                            break;
+                          }
+                          if((k+1)==subsystems[j].length){//solo lo añade al final cuando ha comprobado que no esta ya
+                            console.log("Device Nuevo - Systema existente");
+                            allD++;
+                            subsystems[j].push(items[i].dev);
+                            typeSubs[j].push(items[i].typeS.substring(items[i].typeS.lastIndexOf("#")+1));
+                            
+                            if(items[i].endp!=undefined){
+                              endSubs[j].push(items[i].endp.substring(0,items[i].endp.lastIndexOf("^")-1));
                             }
-                            if(!flagObs){//Si no ha encontrado ningún sistema entonces tendra que añadir uno nuevo
-                              console.log("Sistema nuevo - Sensor nuevo");
-                              sys.push(items[i].sys);
-                              var auxS = [];
-                              var auxT = [];
-                              var auxE = [];
-                              var auxQ = [];
-                              var auxU = [];
-                              var auxP = [];
-                              var auxM = [];
-                              allD++;
-                              auxS.push(items[i].s);
-                              subsystems.push(auxS);
-                              auxT.push(items[i].type.substring(items[i].type.lastIndexOf("#")+1));
-                              typeSubs.push(auxT);
-                              if(items[i].endp!=undefined){
-                                auxE.push(items[i].endp.substring(0,items[i].endp.lastIndexOf("^")-1));
-                                endSubs.push(auxE);
-                              }
-                              else{
-                                auxE.push("NODATA");
-                                endSubs.push(auxE);
-                              }
-                              if(items[i].qK!=undefined){
-                                auxQ.push(items[i].qK.substring(items[i].qK.lastIndexOf("#")+1));
-                                akSubs.push(auxQ);
-                              }
-                              else{
-                                auxQ.push("NODATA");
-                                qkSubs.push(auxQ);
-                              }
-                              if(items[i].unit!=undefined){
-                                auxU.push(items[i].unit.substring(items[i].unit.lastIndexOf("#")+1));
-                                unitSubs.push(auxU);
-                              }
-                              else{
-                                auxU.push("NODATA");
-                                unitSubs.push(auxU);
-                              }
-                              if(items[i].lat!=undefined&&items[i].long!=undefined){
-                                var pos ={
-                                  "lat":Number(items[i].lat.substring(0,items[i].lat.lastIndexOf("^")-1)),
-                                  "long":Number(items[i].long.substring(0,items[i].long.lastIndexOf("^")-1))
-                                }
-                                auxP.push(pos);
-                                positionSubs.push(auxP);
-                              }
-                              else{
-                                auxP.push("NODATA");
-                                positionSubs.push(auxP);
-                              }
-                              //NUEVO
-                              auxM.push(Number(items[i].num.substring(0,items[i].num.indexOf("^^"))));
-                              measureSubs.push(auxM);
+                            else{
+                              endSubs[j].push("NODATA");
                             }
-                          }//No tiene sistema
-                          else{
-                            var flagObs=false;
-                            for(var j=0;j<devices.length;j++){
-                              if(items[i].s==devices[j]){
-                                if(measures[j]=="NODATA"){
-                                  console.log("--Medida agregada device sin systema");
-                                  measures[j]=Number(items[i].num.substring(0,items[i].num.indexOf("^^")));
-                                }
-                                flagObs=true;
-                              }
+                            if(items[i].qK!=undefined){
+                              qkSubs[j].push(items[i].qK.substring(items[i].qK.lastIndexOf("#")+1));
                             }
-                            if(!flagObs){
-                              console.log("Hay un device nuevo sin sistema");
-                              allD++;
-                              //Aqui poner el sensor directamente en uno libre sin Systemas
-                              devices.push(items[i].s);
-                              typeDev.push(items[i].type.substring(items[i].type.lastIndexOf("#")+1));
-                              if(items[i].endp!=undefined){
-                                 endpoints.push(items[i].endp.substring(0,items[i].endp.lastIndexOf("^")-1));
+                            else{
+                              qkSubs[j].push("NODATA");
+                            }
+                            if(items[i].unit!=undefined){
+                              unitSubs[j].push(items[i].unit.substring(items[i].unit.lastIndexOf("#")+1));
+                            }
+                            else{
+                              unitSubs[j].push("NODATA");
+                            }
+                            if(items[i].lat!=undefined&&items[i].long!=undefined){
+                              var pos ={
+                                "lat":Number(items[i].lat.substring(0,items[i].lat.lastIndexOf("^")-1)),
+                                "long":Number(items[i].long.substring(0,items[i].long.lastIndexOf("^")-1))
                               }
-                              else{
-                                endpoints.push("NODATA");
-                              }
-                              if(items[i].qK!=undefined){
-                                qks.push(items[i].qK.substring(items[i].qK.lastIndexOf("#")+1));
-                              }
-                              else{
-                                qks.push("NODATA");
-                              }
-                              if(items[i].unit!=undefined){
-                                units.push(items[i].unit.substring(items[i].unit.lastIndexOf("#")+1));
-                              }
-                              else{
-                                units.push("NODATA");
-                              }
-                              if(items[i].lat!=undefined&&items[i].long!=undefined){
-                                var pos ={
-                                  "lat":Number(items[i].lat.substring(0,items[i].lat.lastIndexOf("^")-1)),
-                                  "long":Number(items[i].long.substring(0,items[i].long.lastIndexOf("^")-1))
-                                }
-                                positions.push(pos);
-                              }
-                              else{
-                                positions.push("NODATA");
-                              }
-                              //NUEVO
-                              measures.push(Number(items[i].num.substring(0,items[i].num.indexOf("^^"))));
+                              positionSubs[j].push(pos);
+                            }
+                            else{
+                              positionSubs[j].push("NODATA");
+                            }
+                            //NUEVO
+                            if(items[i].num!=undefined){
+                              measureSubs[j].push(items[i].num);
+                            }
+                            else{
+                              measureSubs[j].push("NODATA");
                             }
                           }
                         }
                       }
                     }
+                    if(!flagObs){//Si no ha encontrado ningún sistema entonces tendra que añadir uno nuevo
+                      console.log("Sistema nuevo - Device Nuevo");
+                      sys.push(items[i].sys);
+                      var auxS = [];
+                      var auxT = [];
+                      var auxE = [];
+                      var auxQ = [];
+                      var auxU = [];
+                      var auxP = [];
+                      var auxM = [];
+                      allD++;
+                      auxS.push(items[i].dev);
+                      subsystems.push(auxS);
+                      auxT.push(items[i].typeS.substring(items[i].typeS.lastIndexOf("#")+1));
+                      typeSubs.push(auxT);
+
+                      if(items[i].endp!=undefined){
+                        auxE.push(items[i].endp.substring(0,items[i].endp.lastIndexOf("^")-1));
+                        endSubs.push(auxE);
+                      }
+                      else{
+                        auxE.push("NODATA");
+                        endSubs.push(auxE);
+                      }
+                      if(items[i].qK!=undefined){
+                        auxQ.push(items[i].qK.substring(items[i].qK.lastIndexOf("#")+1));
+                        qkSubs.push(auxQ);
+                      }
+                      else{
+                        auxQ.push("NODATA");
+                        qkSubs.push(auxQ);
+                      }
+                      if(items[i].unit!=undefined){
+                        auxU.push(items[i].unit.substring(items[i].unit.lastIndexOf("#")+1));
+                        unitSubs.push(auxU);
+                      }
+                      else{
+                        auxU.push("NODATA");
+                        unitSubs.push(auxU);
+                      }
+                      if(items[i].lat!=undefined&&items[i].long!=undefined){
+                        var pos ={
+                          "lat":Number(items[i].lat.substring(0,items[i].lat.lastIndexOf("^")-1)),
+                          "long":Number(items[i].long.substring(0,items[i].long.lastIndexOf("^")-1))
+                        }
+                        auxP.push(pos);
+                        positionSubs.push(auxP);
+                      }
+                      else{
+                        auxP.push("NODATA");
+                        positionSubs.push(auxP);
+                      }
+                      //NUEVO
+                      if(items[i].num!=undefined){
+                        auxM.push();
+                        measureSubs.push(auxM);
+                      }
+                      else{
+                        auxM.push("NODATA");
+                        measureSubs.push(auxM);
+                      }
+                      
+                    }
+                  }//No tiene sistema
+                  else{
+                    var flagObs=false;
+                    for(var j=0;j<devices.length;j++){
+                      if(items[i].dev==devices[j]){
+                        flagObs=true;
+                      }
+                    }
+                    if(!flagObs){
+                      console.log("Device nuevo suelto");
+                      allD++;
+                      //Aqui poner el sensor directamente en uno libre sin Systemas
+                      devices.push(items[i].dev);
+                      typeDev.push(items[i].typeS.substring(items[i].typeS.lastIndexOf("#")+1));
+                      if(items[i].endp!=undefined){
+                         endpoints.push(items[i].endp.substring(0,items[i].endp.lastIndexOf("^")-1));
+                      }
+                      else{
+                        endpoints.push("NODATA");
+                      }
+                      if(items[i].qK!=undefined){
+                        qks.push(items[i].qK.substring(items[i].qK.lastIndexOf("#")+1));
+                      }
+                      else{
+                        qks.push("NODATA");
+                      }
+                      if(items[i].unit!=undefined){
+                        units.push(items[i].unit.substring(items[i].unit.lastIndexOf("#")+1));
+                      }
+                      else{
+                        units.push("NODATA");
+                      }
+                      if(items[i].lat!=undefined&&items[i].long!=undefined){
+                        var pos ={
+                          "lat":Number(items[i].lat.substring(0,items[i].lat.lastIndexOf("^")-1)),
+                          "long":Number(items[i].long.substring(0,items[i].long.lastIndexOf("^")-1))
+                        }
+                        positions.push(pos);
+                      }
+                      else{
+                        positions.push("NODATA");
+                      }
+                      //NUEVO
+                      measures.push("NODATA");
+                    }
                   }
-                  console.log("Devices"+allD);
-                  console.log("Length of sys"+sys.length);//Misma longitud que el de abajo
-                  console.log("Length of sys in subsystems"+subsystems.length);
-                  console.log("Length of sys in Typesubsystems"+subsystems.length);
-                  res.render('devices', {
-                    title: 'Devices of Deployment '+nameDep,
-                    nameDep: nameDep,
-                    devices: devices,//enlace entero
-                    typeDev: typeDev,
-                    endpoints: endpoints,
-                    qks: qks,
-                    units: units,
-                    positions,
-                    measures,
-                    //devs: devs,//id despues de la /
-                    sys: sys,
-                    subsystems: subsystems,
-                    typeSubs: typeSubs,
-                    endSubs: endSubs,
-                    qkSubs: qkSubs,
-                    unitSubs: unitSubs,
-                    positionSubs,
-                    measureSubs,
-                    allD: allD,
-                    APIKeyGMJS: APIKeyGMJS,
-                    dep:dep
-                  });
-                })
+                }
               }
-            });
-            request.on('error', function(e) {
-              console.log("ERROR "+e.message);
+            }
+          }
+          console.log("Devices"+allD);
+          console.log("Length of sys"+sys.length);//Misma longitud que el de abajo
+          console.log("Length of sys in subsystems"+subsystems.length);
+          console.log("Length of sys in Typesubsystems"+subsystems.length);*/
+      
+          var token = '';
+          var body="";
+          var request = https.request(optionsToken, function(response) {
+            console.log('STATUS /token: ' + response.statusCode);
+            if(response.statusCode === 401){
+              console.info("UNAUTORIZADO TOKEN");
               res.render('devices', {
-                    title: 'Devices of Deployment '+nameDep,
-                    nameDep: nameDep,
-                    devices: devices,//enlace entero
-                    typeDev: typeDev,
-                    endpoints: endpoints,
-                    qks: qks,
-                    units: units,
-                    positions,
-                    measures,
-                    //devs: devs,//id despues de la /
-                    sys: sys,
-                    subsystems: subsystems,
-                    typeSubs: typeSubs,
-                    endSubs: endSubs,
-                    qkSubs: qkSubs,
-                    unitSubs: unitSubs,
-                    positionSubs,
-                    measureSubs,
-                    allD: allD,
-                    APIKeyGMJS: APIKeyGMJS,
-                    dep:dep
-                  });
-            });
-            request.write(postData);
-            request.end();
+                title: 'Devices of Deployment '+nameDep,
+                nameDep: nameDep,
+                devices: devices,//enlace entero
+                typeDev: typeDev,
+                endpoints: endpoints,
+                qks: qks,
+                units: units,
+                positions,
+                measures,
+                //devs: devs,//id despues de la /
+                sys: sys,
+                subsystems: subsystems,
+                typeSubs: typeSubs,
+                endSubs: endSubs,
+                qkSubs: qkSubs,
+                unitSubs: unitSubs,
+                positionSubs,
+                measureSubs,
+                allD: allD,
+                APIKeyGMJS: APIKeyGMJS,
+                dep:dep
+              });
+            }
+            else{
+              console.log('HEADERS /token: ' + JSON.stringify(response.headers));
+              response.on('data', function(chunk) {
+                body+=chunk;
+              }).on('end', function() {
+                token = JSON.parse(body).tokenId;
+                //Obtener todas las observaciones que coincidan con un device
+                var postData =
+                  "Prefix ssn: <http://purl.oclc.org/NET/ssnx/ssn#>"+
+                  "Prefix iotlite: <http://purl.oclc.org/NET/UNIS/fiware/iot-lite#>"+ 
+                  "Prefix dul: <http://www.loa.istc.cnr.it/ontologies/DUL.owl#>"+
+                  "PREFIX rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#>"+
+                  "Prefix geo: <http://www.w3.org/2003/01/geo/wgs84_pos#>"+
+                  "Prefix time: <http://www.w3.org/2006/time#>"+
+                  "Prefix m3-lite: <http://purl.org/iot/vocab/m3-lite#>"+
+                  "Prefix xsd: <http://www.w3.org/2001/XMLSchema#>"+
+                  "Prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>"+
+                  "Prefix iot-lite: <http://purl.oclc.org/NET/UNIS/fiware/iot-lite#>"+
+                  "SELECT ?obs ?s ?sys ?t ?num ?unit ?lat ?long ?qk ?type "+
+                  "WHERE {"+
+                    "?obs a ssn:Observation."+
+                    "?obs ssn:observedBy ?s ."+
+                    "?s rdf:type ?type ."+
+                    "optional{"+
+                    "?s iot-lite:isSubSystemOf ?sys ."+
+                    "?sys ssn:hasDeployment ?Dep ."+
+                    "}"+
+                    "VALUES ?Dep {"+
+                      "<"+dep+">"+
+                    "} ."+
+                    "?obs ssn:observationSamplingTime ?time ."+
+                    "?time time:inXSDDateTime ?t ."+
+                    "?obs ssn:observationResult ?result ."+
+                    "?result ssn:hasValue ?value ."+
+                    "?value dul:hasDataValue ?num ."+
+                    "?obs geo:location ?point ."+
+                    "?point geo:lat ?lat ."+
+                    "?point geo:long ?long ."+
+                    "?s iot-lite:hasQuantityKind ?qKURI ."+
+                    "?qKURI rdf:type ?qk ."+
+                    "?s iot-lite:hasUnit ?unitURI ."+
+                    "?unitURI rdf:type ?unit ."+
+                  "}ORDER BY ?t";
+                  console.log(postData);
+                var options = {
+                  host: 'platform.fiesta-iot.eu',
+                  path: '/iot-registry/api/queries/execute/global',
+                  method: 'POST',
+                  headers: {
+                        'Content-Type': 'text/plain',
+                        'Content-Length': Buffer.byteLength(postData),
+                        'Accept': 'application/json',
+                        'iPlanetDirectoryPro': token
+                  },
+                  timeout: 660000//10 minutos
+                };
+                //var timeObs = [];//fecha de las observaciones
+                //var measures = [];//medidas de las observaciones
+                var request = https.request(options, function(response) {
+                  body="";
+                  console.log('STATUS /observations: ' + response.statusCode);
+                  if(response.statusCode === 401){
+                    //Token no valido unautorizado
+                    console.log("UNAUTORIZADO DEVANDOBS");
+                    res.render('devices', {
+                        title: 'Devices of Deployment '+nameDep,
+                        nameDep: nameDep,
+                        devices: devices,//enlace entero
+                        typeDev: typeDev,
+                        endpoints: endpoints,
+                        qks: qks,
+                        units: units,
+                        positions,
+                        measures,
+                        //devs: devs,//id despues de la /
+                        sys: sys,
+                        subsystems: subsystems,
+                        typeSubs: typeSubs,
+                        endSubs: endSubs,
+                        qkSubs: qkSubs,
+                        unitSubs: unitSubs,
+                        positionSubs,
+                        measureSubs,
+                        allD: allD,
+                        APIKeyGMJS: APIKeyGMJS,
+                        dep:dep
+                      });
+                  }
+                  else{
+                    console.log('HEADERS /observations: ' + JSON.stringify(response.headers));
+                    response.on('data', function(chunk) {
+                      //Capturar esto para ver si hay error y transmitir a la pagina un error en el servidor y guardar logs
+                      body+=chunk;
+                      //console.log("CHUNK "+chunk);
+                    }).on('end', function() {
+                      if(response.statusCode===200){
+                        var JsonChunk = JSON.parse(body);//cazar exceptino
+                        var items = JsonChunk.items;
+                        //Extraer todas las observaciones que me sirven
+                        if(items.length==0){
+                          //No hay observaciones de este sensor
+                          console.log("VACIOOOOOO");
+                        }
+                        else{
+                          console.log("LLEEEENOO Medidas Observacion");
+                          for(i=0;i<items.length;i++){
+                            if(items[i].s!=undefined){
+                              if(items[i].sys){
+                                var flagObs = false;//flag para comprobar si hay un systema nuevo
+                                for(var j=0;j<sys.length;j++){
+                                  if(items[i].sys==sys[j]){
+                                    flagObs=true;
+                                    //console.log("Hay un sistema que coincide");
+                                    for(var k=0;k<subsystems[j].length;k++){
+                                      if(subsystems[j][k]==items[i].s){
+                                        //console.log("Agregar medida");
+                                        if(measureSubs[j][k]=="NODATA"){
+                                          console.log("--Medida agregada");
+                                          measureSubs[j][k]=Number(items[i].num.substring(0,items[i].num.indexOf("^^")));
+                                        }
+                                        break;
+                                      }
+                                      if((k+1)==subsystems[j].length){//solo lo añade al final cuando ha comprobado que no esta ya
+                                        allD++;
+                                        console.log("Nuevo sensor en Systema existente"+j+"-"+k);
+                                        subsystems[j].push(items[i].s);
+                                        typeSubs[j].push(items[i].type.substring(items[i].type.lastIndexOf("#")+1));
+                                        
+                                        if(items[i].endp!=undefined){
+                                          endSubs[j].push(items[i].endp.substring(0,items[i].endp.lastIndexOf("^")-1));
+                                        }
+                                        else{
+                                          endSubs[j].push("NODATA");
+                                        }
+                                        if(items[i].qk!=undefined){
+                                          qkSubs[j].push(items[i].qk.substring(items[i].qk.lastIndexOf("#")+1));
+                                        }
+                                        else{
+                                          qkSubs[j].push("NODATA");
+                                        }
+                                        if(items[i].unit!=undefined){
+                                          unitSubs[j].push(items[i].unit.substring(items[i].unit.lastIndexOf("#")+1));
+                                        }
+                                        else{
+                                          unitSubs[j].push("NODATA");
+                                        }
+                                        if(items[i].lat!=undefined&&items[i].long!=undefined){
+                                          var pos ={
+                                            "lat":Number(items[i].lat.substring(0,items[i].lat.lastIndexOf("^")-1)),
+                                            "long":Number(items[i].long.substring(0,items[i].long.lastIndexOf("^")-1))
+                                          }
+                                          positionSubs[j].push(pos);
+                                        }
+                                        else{
+                                          positionSubs[j].push("NODATA");
+                                        }
+                                        measureSubs[j].push(Number(items[i].num.substring(0,items[i].num.indexOf("^^"))));
+                                      }
+                                    }
+                                  }
+                                }
+                                if(!flagObs){//Si no ha encontrado ningún sistema entonces tendra que añadir uno nuevo
+                                  console.log("Sistema nuevo - Sensor nuevo");
+                                  sys.push(items[i].sys);
+                                  var auxS = [];
+                                  var auxT = [];
+                                  var auxE = [];
+                                  var auxQ = [];
+                                  var auxU = [];
+                                  var auxP = [];
+                                  var auxM = [];
+                                  allD++;
+                                  auxS.push(items[i].s);
+                                  subsystems.push(auxS);
+                                  auxT.push(items[i].type.substring(items[i].type.lastIndexOf("#")+1));
+                                  typeSubs.push(auxT);
+                                  if(items[i].endp!=undefined){
+                                    auxE.push(items[i].endp.substring(0,items[i].endp.lastIndexOf("^")-1));
+                                    endSubs.push(auxE);
+                                  }
+                                  else{
+                                    auxE.push("NODATA");
+                                    endSubs.push(auxE);
+                                  }
+                                  if(items[i].qK!=undefined){
+                                    auxQ.push(items[i].qK.substring(items[i].qK.lastIndexOf("#")+1));
+                                    akSubs.push(auxQ);
+                                  }
+                                  else{
+                                    auxQ.push("NODATA");
+                                    qkSubs.push(auxQ);
+                                  }
+                                  if(items[i].unit!=undefined){
+                                    auxU.push(items[i].unit.substring(items[i].unit.lastIndexOf("#")+1));
+                                    unitSubs.push(auxU);
+                                  }
+                                  else{
+                                    auxU.push("NODATA");
+                                    unitSubs.push(auxU);
+                                  }
+                                  if(items[i].lat!=undefined&&items[i].long!=undefined){
+                                    var pos ={
+                                      "lat":Number(items[i].lat.substring(0,items[i].lat.lastIndexOf("^")-1)),
+                                      "long":Number(items[i].long.substring(0,items[i].long.lastIndexOf("^")-1))
+                                    }
+                                    auxP.push(pos);
+                                    positionSubs.push(auxP);
+                                  }
+                                  else{
+                                    auxP.push("NODATA");
+                                    positionSubs.push(auxP);
+                                  }
+                                  //NUEVO
+                                  auxM.push(Number(items[i].num.substring(0,items[i].num.indexOf("^^"))));
+                                  measureSubs.push(auxM);
+                                }
+                              }//No tiene sistema
+                              else{
+                                var flagObs=false;
+                                for(var j=0;j<devices.length;j++){
+                                  if(items[i].s==devices[j]){
+                                    if(measures[j]=="NODATA"){
+                                      console.log("--Medida agregada device sin systema");
+                                      measures[j]=Number(items[i].num.substring(0,items[i].num.indexOf("^^")));
+                                    }
+                                    flagObs=true;
+                                  }
+                                }
+                                if(!flagObs){
+                                  console.log("Hay un device nuevo sin sistema");
+                                  allD++;
+                                  //Aqui poner el sensor directamente en uno libre sin Systemas
+                                  devices.push(items[i].s);
+                                  typeDev.push(items[i].type.substring(items[i].type.lastIndexOf("#")+1));
+                                  if(items[i].endp!=undefined){
+                                     endpoints.push(items[i].endp.substring(0,items[i].endp.lastIndexOf("^")-1));
+                                  }
+                                  else{
+                                    endpoints.push("NODATA");
+                                  }
+                                  if(items[i].qK!=undefined){
+                                    qks.push(items[i].qK.substring(items[i].qK.lastIndexOf("#")+1));
+                                  }
+                                  else{
+                                    qks.push("NODATA");
+                                  }
+                                  if(items[i].unit!=undefined){
+                                    units.push(items[i].unit.substring(items[i].unit.lastIndexOf("#")+1));
+                                  }
+                                  else{
+                                    units.push("NODATA");
+                                  }
+                                  if(items[i].lat!=undefined&&items[i].long!=undefined){
+                                    var pos ={
+                                      "lat":Number(items[i].lat.substring(0,items[i].lat.lastIndexOf("^")-1)),
+                                      "long":Number(items[i].long.substring(0,items[i].long.lastIndexOf("^")-1))
+                                    }
+                                    positions.push(pos);
+                                  }
+                                  else{
+                                    positions.push("NODATA");
+                                  }
+                                  //NUEVO
+                                  measures.push(Number(items[i].num.substring(0,items[i].num.indexOf("^^"))));
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                      console.log("Devices"+allD);
+                      console.log("Length of sys"+sys.length);//Misma longitud que el de abajo
+                      console.log("Length of sys in subsystems"+subsystems.length);
+                      console.log("Length of sys in Typesubsystems"+subsystems.length);
+                      res.render('devices', {
+                        title: 'Devices of Deployment '+nameDep,
+                        nameDep: nameDep,
+                        devices: devices,//enlace entero
+                        typeDev: typeDev,
+                        endpoints: endpoints,
+                        qks: qks,
+                        units: units,
+                        positions,
+                        measures,
+                        //devs: devs,//id despues de la /
+                        sys: sys,
+                        subsystems: subsystems,
+                        typeSubs: typeSubs,
+                        endSubs: endSubs,
+                        qkSubs: qkSubs,
+                        unitSubs: unitSubs,
+                        positionSubs,
+                        measureSubs,
+                        allD: allD,
+                        APIKeyGMJS: APIKeyGMJS,
+                        dep:dep
+                      });
+                    })
+                  }
+                });
+                request.on('error', function(e) {
+                  console.log("ERROR "+e.message);
+                  res.render('devices', {
+                        title: 'Devices of Deployment '+nameDep,
+                        nameDep: nameDep,
+                        devices: devices,//enlace entero
+                        typeDev: typeDev,
+                        endpoints: endpoints,
+                        qks: qks,
+                        units: units,
+                        positions,
+                        measures,
+                        //devs: devs,//id despues de la /
+                        sys: sys,
+                        subsystems: subsystems,
+                        typeSubs: typeSubs,
+                        endSubs: endSubs,
+                        qkSubs: qkSubs,
+                        unitSubs: unitSubs,
+                        positionSubs,
+                        measureSubs,
+                        allD: allD,
+                        APIKeyGMJS: APIKeyGMJS,
+                        dep:dep
+                      });
+                });
+                request.write(postData);
+                request.end();
+              });
+            }
           });
-        }
-      });
-      request.on('error', function(e) {
-        console.log("ERROR "+e.message);
-         res.render('devices', {
-          title: 'Devices of Deployment '+nameDep,
-          nameDep: nameDep,
-          devices: devices,//enlace entero
-          typeDev: typeDev,
-          endpoints: endpoints,
-          qks: qks,
-          units: units,
-          positions,
-          measures,
-          //devs: devs,//id despues de la /
-          sys: sys,
-          subsystems: subsystems,
-          typeSubs: typeSubs,
-          endSubs: endSubs,
-          qkSubs: qkSubs,
-          unitSubs: unitSubs,
-          positionSubs,
-          measureSubs,
-          allD: allD,
-          APIKeyGMJS: APIKeyGMJS,
-          dep:dep
+          request.on('error', function(e) {
+            console.log("ERROR "+e.message);
+             res.render('devices', {
+              title: 'Devices of Deployment '+nameDep,
+              nameDep: nameDep,
+              devices: devices,//enlace entero
+              typeDev: typeDev,
+              endpoints: endpoints,
+              qks: qks,
+              units: units,
+              positions,
+              measures,
+              //devs: devs,//id despues de la /
+              sys: sys,
+              subsystems: subsystems,
+              typeSubs: typeSubs,
+              endSubs: endSubs,
+              qkSubs: qkSubs,
+              unitSubs: unitSubs,
+              positionSubs,
+              measureSubs,
+              allD: allD,
+              APIKeyGMJS: APIKeyGMJS,
+              dep:dep
+            });
+          });  
+          request.end();
+
+          db.close();
         });
-      });  
-      request.end();
-
-      db.close();
+      }
     });
-  }
-  });
-//});
- 
-//db.close();
-});//MongoClient
-
+  });//MongoClient
 };
 
 exports.readMongoDevofDep2 = function(req,res,next){
@@ -2665,10 +1824,16 @@ exports.readMongoDevofDep2 = function(req,res,next){
   
   var fismoArray = [];
   MongoClient.connect(newurlMongdb, function(err, db){
-    if(err) throw err;
+    if(err) {
+      console.error(err);
+      if(db){db.close();}
+      return;
+    }
     var cursor = db.collection('fismos').find();
     cursor.forEach(function(doc, error){
-      if(error) throw error;
+      if(error) {
+        console.error(error);
+      }
       fismoArray.push(doc);
     }, function(){
       //LA FIESTA VA AQUI
@@ -2853,10 +2018,7 @@ exports.readMongoDevofDep2 = function(req,res,next){
       db.close();
     });
   });
-
- 
 };
-
 
 exports.readMongoSensorsOld = function(req,res,next){
   /*Para coger los parametros de la url es con req.params.:id
@@ -2873,7 +2035,11 @@ exports.readMongoSensorsOld = function(req,res,next){
   
   var fismoArray = [];
   MongoClient.connect(newurlMongdb, function(err, db){
-    if(err) throw err;
+    if(err){
+      console.log(err);
+      if(db){db.close();}
+      return;
+    }
     var cursor = db.collection('fismos').find();
     cursor.forEach(function(doc, err){
       fismoArray.push(doc);
@@ -3038,14 +2204,35 @@ exports.scheduledAction = function(req, res, next){
     email : email
   };
   MongoClient.connect(newurlMongdb, function(err, db){
-    if(err) throw err;
+    if(err){
+      console.error(err.message);
+      res.render('scheduledAdded', {
+        title: 'Error trying to connect to MongoDB',
+        tDev : tDev,
+        endp : endp,
+        min : min,
+        max : max,
+        action : action,
+        email : email
+      });
+      if(db){db.close();}
+      return;
+    }
     db.collection('scheduledActions').insertOne(newScheduledAction, function(err, records){
       if(err){
-        console.warn(err.message);
+        console.error(err.message);
+        res.render('scheduledAdded', {
+          title: 'Error saving to MongoDB',
+          tDev : tDev,
+          endp : endp,
+          min : min,
+          max : max,
+          action : action,
+          email : email
+        });
       }
       else{
         console.log("Scheduled Action added");
-
       }
       res.render('scheduledAdded', {
         title: 'Scheduled Added',
@@ -3082,7 +2269,19 @@ exports.saveDevicesList = function(req,res,next){
   console.log("Devices "+devices);
   console.log("Types "+types);
   MongoClient.connect(newurlMongdb, function(err, db){
-    if(err) throw err;
+    if(err) {
+      res.render('devicesListAdded', {
+        title: 'Error trying to connect to MongoDB',
+        nameDep : nameDep,
+        ulrDep : ulrDep,
+        preUrl : preUrl,
+        listName : listName,
+        devices : devices,
+        types: types
+      });
+      if(db){db.close();}
+      return;
+    }
     db.collection('devicesList').findAndModify(
       {listName:listName},
       [['_id','asc']],
@@ -3092,13 +2291,22 @@ exports.saveDevicesList = function(req,res,next){
       {upsert: true},
       function(err, result){
         if(err){
-          console.warn(err.message);
+          console.error(err.message);
           /*db.collection('fismos').insertOne(newfismo, function(err, records){
             console.log("Record added as "+records[0]._id);
           });*/
+          res.render('devicesListAdded', {
+            title: 'Error saving to MongoDB',
+            nameDep : nameDep,
+            ulrDep : ulrDep,
+            preUrl : preUrl,
+            listName : listName,
+            devices : devices,
+            types: types
+          });
         }
         else{
-        console.log("Devices List added");
+          console.log("Devices List added");
         }
         res.render('devicesListAdded', {
           title: 'Created Devices List',
@@ -3136,8 +2344,7 @@ exports.saveDevicesList = function(req,res,next){
 
 };
 
-
-exports.readFileDevofDep = function(req,res,next){
+function readFileDevofDep(req,res,next){
   /*Para coger los parametros de la url es con req.params.:id
     Para coger los parametros de un formulario con post req.body.:id
     Para coger los parametros de un formulario por get(en la url) con req.query.:id
@@ -3154,19 +2361,30 @@ exports.readFileDevofDep = function(req,res,next){
   var data = "";
   var max = 0;
   var n="";
+  var dataJson = {};
+  files.sort();
+  files.reverse();
+  let goodReading = false;
   files.forEach(file => {
     console.log("Nombre del archivo: "+file);
     // console.log("Tipo del archivo: "+typeof(file));
     var maxf = Number(file.substring(file.lastIndexOf('T')+1,file.lastIndexOf('N')));
     if(maxf>max){
-      n=file;
-      console.log("AHORA: "+n);
+      if (!goodReading){
+        try{
+          n=file;
+          console.log("AHORA: "+n);
+          data = fs.readFileSync('files/' + n, 'utf8');
+          dataJson = JSON.parse(data);
+          goodReading = true;
+          
+        } catch(error) {
+          console.error(error);
+        }
+      }
     }
   });
-
-  data = fs.readFileSync('files/' + n, 'utf8');
   //console.log("DATA "+data);
-  var dataJson = JSON.parse(data);
   var items = dataJson.items;
   var devices = [];//dispositivos que son su propio systema
   var allD = 0;
@@ -3813,5 +3031,5 @@ exports.readFileDevofDep = function(req,res,next){
   });  
   request.end();
 };
-
+exports.readFileDevofDep = readFileDevofDep;
 //---------------------------------------------------------------------------------------
